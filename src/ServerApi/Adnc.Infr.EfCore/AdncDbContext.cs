@@ -12,18 +12,20 @@ namespace Adnc.Infr.EfCore
     public class AdncDbContext : DbContext
     {
         private readonly UserContext _userContext;
-        private IEntityInfo _entityInfo;
+        private readonly IEntityInfo _entityInfo;
+        private readonly UnitOfWorkStatus _unitOfWorkStatus;
 
-        public AdncDbContext([NotNull] DbContextOptions options, UserContext userContext, [NotNull] IEntityInfo entityInfo)
+        public AdncDbContext([NotNull] DbContextOptions options, UserContext userContext, [NotNull] IEntityInfo entityInfo, UnitOfWorkStatus unitOfWorkStatus)
             : base(options)
         {
             _userContext = userContext;
             _entityInfo = entityInfo;
+            _unitOfWorkStatus = unitOfWorkStatus;
 
             //关闭DbContext默认事务
             Database.AutoTransactionsEnabled = false;
             //关闭查询跟踪
-            ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+            //ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
 
             //生成数据库表有下面的三种方式：
             //1、代码生生成数据库
@@ -38,62 +40,67 @@ namespace Adnc.Infr.EfCore
             //(3)、dotnet ef database update
         }
 
-        public override int SaveChanges()
-        {
-            this.SetAuditFields();
-            return base.SaveChanges();
-        }
-
-        public override int SaveChanges(bool acceptAllChangesOnSuccess)
-        {
-            this.SetAuditFields();
-            return base.SaveChanges(acceptAllChangesOnSuccess);
-        }
-
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            this.SetAuditFields();
-            return base.SaveChangesAsync(cancellationToken);
+            var changedEntities = this.SetAuditFields();
+
+            //没有自动开启事务的情况下,保证主从表插入，主从表更新开启事务。
+            var isManualTransaction = false;
+            if (!Database.AutoTransactionsEnabled && !_unitOfWorkStatus.IsStartingUow && changedEntities > 1)
+            {
+                isManualTransaction = true;
+                Database.AutoTransactionsEnabled = true;
+            }
+
+            var result = base.SaveChangesAsync(cancellationToken);
+
+            //如果手工开启了自动事务，用完后关闭。
+            if (isManualTransaction)
+                Database.AutoTransactionsEnabled = false;
+
+            return result;
         }
 
-        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        private int SetAuditFields()
         {
-            this.SetAuditFields();
-            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        }
+            var allEntities = ChangeTracker.Entries<Entity>();
 
-        private void SetAuditFields()
-        {
-
-            var allEntities = ChangeTracker.Entries<EfEntity>().Where(x => x.State == EntityState.Added);
-            foreach (var entry in allEntities)
+            var allBasicAuditEntities = ChangeTracker.Entries<IBasicAuditInfo>().Where(x => x.State == EntityState.Added);
+            foreach (var entry in allBasicAuditEntities)
             {
                 var entity = entry.Entity;
                 {
-                    entity.CreateBy = _userContext.ID;
+                    entity.CreateBy = _userContext.Id;
                     entity.CreateTime = DateTime.Now;
                 }
             }
 
-            var auditEntities = ChangeTracker.Entries<IAudit>().Where(x => x.State == EntityState.Modified);
-            foreach (var entry in auditEntities)
+            var auditFullEntities = ChangeTracker.Entries<IFullAuditInfo>().Where(x => x.State == EntityState.Modified);
+            foreach (var entry in auditFullEntities)
             {
                 var entity = entry.Entity;
                 {
-                    entity.ModifyBy = _userContext.ID;
+                    entity.ModifyBy = _userContext.Id;
                     entity.ModifyTime = DateTime.Now;
                 }
             }
+
+            return allEntities.Count();
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            var entitiesTypes = _entityInfo.GetEntities();
 
-            foreach (var entityType in entitiesTypes)
+            var (Assembly, Types) = _entityInfo.GetEntitiesInfo();
+
+            foreach (var entityType in Types)
             {
                 modelBuilder.Entity(entityType);
             }
+
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly);
+
+            base.OnModelCreating(modelBuilder);
 
             //种子数据
             //modelBuilder.Entity<SysLoginLog>().HasData(new SysLoginLog{});
@@ -105,16 +112,13 @@ namespace Adnc.Infr.EfCore
             //生成迁移sql
             //Script-Migration -From migrationName1 -To migrationName2  -Context ContextName
             //如：Script-Migration -From 0
-
-            modelBuilder.ApplyConfigurationsFromAssembly(_entityInfo.GetType().Assembly);
-
-            base.OnModelCreating(modelBuilder);
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            //用于设置是否启用缓存，暂时解决了可能出现的内存溢出的问题
-            optionsBuilder.EnableServiceProviderCaching(false);
+            //关闭缓存，每次都会调用OnModelCreating
+            //用于设置是否启用缓存
+            //optionsBuilder.EnableServiceProviderCaching(false);
             base.OnConfiguring(optionsBuilder);
         }
     }

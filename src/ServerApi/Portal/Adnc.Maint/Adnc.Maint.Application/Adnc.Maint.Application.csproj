@@ -2,6 +2,13 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
+		<Version>0.7.0</Version>
+		<Authors>Alpha.Yu</Authors>
+		<Product>Adnc</Product>
+		<RepositoryUrl>https://github.com/AlphaYu</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageProjectUrl>https://www.aspdotnetcore.net</PackageProjectUrl>
+		<Copyright>Alpha</Copyright>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -9,18 +16,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\Adnc.Application.Shared\02.Adnc.Application.Shared.csproj" />
-		<ProjectReference Include="..\..\..\Adnc.Infr.EasyCaching\21.Adnc.Infr.EasyCaching.csproj" />
-		<ProjectReference Include="..\Adnc.Maint.Core\Adnc.Maint.Core.csproj" />
+	  <Compile Remove="Services\Task\**" />
+	  <EmbeddedResource Remove="Services\Task\**" />
+	  <None Remove="Services\Task\**" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Autofac" Version="6.0.0" />
-		<PackageReference Include="Castle.Core" Version="4.4.1" />
-		<PackageReference Include="Autofac.Extras.DynamicProxy" Version="6.0.0" />
-		<PackageReference Include="Autofac.Extensions.DependencyInjection" Version="7.0.2" />
-		<PackageReference Include="AutoMapper" Version="10.1.1" />
-		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.0" />
+		<ProjectReference Include="..\..\..\Adnc.Application.Shared\02.Adnc.Application.Shared.csproj" />
+		<ProjectReference Include="..\..\..\Adnc.Infr.EasyCaching\21.Adnc.Infr.EasyCaching.csproj" />
+		<ProjectReference Include="..\Adnc.Maint.Core\Adnc.Maint.Core.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

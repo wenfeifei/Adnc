@@ -1,11 +1,11 @@
 ﻿using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
+using Adnc.Application.Shared.Dtos;
 using Adnc.Cus.Application.Services;
 using Adnc.Cus.Application.Dtos;
-using Adnc.Application.Shared.Dtos;
+using Adnc.WebApi.Shared;
+using Microsoft.AspNetCore.Http;
 
 namespace Adnc.Cus.WebApi.Controllers
 {
@@ -14,7 +14,7 @@ namespace Adnc.Cus.WebApi.Controllers
     /// </summary>
     [Route("cus/customer")]
     [ApiController]
-    public class CustomerController : ControllerBase
+    public class CustomerController : AdncControllerBase
     {
         private readonly ICustomerAppService _cusService;
 
@@ -26,13 +26,14 @@ namespace Adnc.Cus.WebApi.Controllers
         /// <summary>
         /// 注册
         /// </summary>
-        /// <param name="inputDto"><see cref="RegisterInputDto"/></param>
+        /// <param name="input"><see cref="CustomerRegisterDto"/></param>
         /// <returns></returns>
         [HttpPost]
         //[Permission("customerRegister")]
-        public async Task Register([FromBody][NotNull] RegisterInputDto inputDto)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public async Task<ActionResult<CustomerDto>> RegisterAsync([FromBody][NotNull] CustomerRegisterDto input)
         {
-            await _cusService.Register(inputDto);
+            return CreatedResult(await _cusService.RegisterAsync(input));
         }
 
         /// <summary>
@@ -41,21 +42,22 @@ namespace Adnc.Cus.WebApi.Controllers
         /// <returns></returns>
         [HttpPut("{id}/balance")]
         //[Permission("customerRecharge")]
-        public async Task<SimpleDto<string>> Recharge([FromRoute]string id,[FromBody] SimpleInputDto<decimal> inputDto)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<SimpleDto<string>>> RechargeAsync([FromRoute] long id, [FromBody] CustomerRechargeDto input)
         {
-            return await _cusService.Recharge(new RechargeInputDto { ID = long.Parse(id), Amount = inputDto.Value });
+            return Result(await _cusService.RechargeAsync(id, input));
         }
 
         /// <summary>
-        /// 指定交易记录id查询结果
+        /// 客户分页列表
         /// </summary>
-        /// <param name="id">交易id</param>
+        /// <param name="search"></param>
         /// <returns></returns>
-        [HttpGet("tranlogs/{id}")]
-        //[Permission("customerRecharge")]
-        public async Task<SimpleDto<bool>> GetRechargedStatus([FromRoute] string id)
+        [HttpGet("page")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<PageModelDto<CustomerDto>>> GetPagedAsync([FromQuery]CustomerSearchPagedDto search)
         {
-            return await new ValueTask<SimpleDto<bool>>(new SimpleDto<bool> { Result = true });
+            return Result(await _cusService.GetPagedAsync(search));
         }
     }
 }

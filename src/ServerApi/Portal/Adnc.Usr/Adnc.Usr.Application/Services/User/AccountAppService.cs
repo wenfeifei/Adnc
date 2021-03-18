@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Net;
 using System.Linq;
-using System.Text.Json;
+using System.Dynamic;
 using System.Threading.Tasks;
 using AutoMapper;
 using Adnc.Usr.Application.Dtos;
@@ -8,171 +9,214 @@ using Adnc.Core.Shared.IRepositories;
 using Adnc.Usr.Core.Entities;
 using Adnc.Infr.Mq.RabbitMq;
 using Adnc.Usr.Core.IRepositories;
-using Adnc.Core.Shared.Entities;
-using Adnc.Application.Shared;
 using Adnc.Infr.Common.Helper;
 using Adnc.Infr.Common.Extensions;
-using System.Dynamic;
+using Adnc.Application.Shared.Services;
 
 namespace Adnc.Usr.Application.Services
 {
-    public class AccountAppService : IAccountAppService
+    public class AccountAppService : AppService, IAccountAppService
     {
         private readonly IMapper _mapper;
         private readonly IEfRepository<SysUser> _userRepository;
         private readonly IEfRepository<SysRole> _roleRepository;
         private readonly IEfRepository<SysMenu> _menuRepository;
-        private readonly IEfRepository<NullEntity> _rsp;
         private readonly RabbitMqProducer _mqProducer;
 
         public AccountAppService(IMapper mapper,
             IEfRepository<SysUser> userRepository,
             IEfRepository<SysRole> roleRepository,
             IEfRepository<SysMenu> menuRepository,
-            IEfRepository<NullEntity> rsp,
             RabbitMqProducer mqProducer)
         {
             _mapper = mapper;
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _menuRepository = menuRepository;
-            _rsp = rsp;
             _mqProducer = mqProducer;
         }
 
-        public async Task<UserInfoDto> GetUserInfo(long id)
+        public async Task<AppSrvResult<UserInfoDto>> GetUserInfoAsync(long id)
         {
-            var user = await _userRepository.FetchAsync(u => new { u.Account, u.Avatar, u.Birthday, u.DeptId, Dept = new { u.Dept.FullName}, u.Email, u.ID, u.Name, u.Phone, u.RoleId, u.Sex, u.Status }
-            , x => x.ID == id);
+            var userProfile = await _userRepository.FetchAsync(u => new UserProfileDto
+            {
+                Account = u.Account
+                ,
+                Avatar = u.Avatar
+                ,
+                Birthday = u.Birthday
+                ,
+                DeptId = u.DeptId
+                ,
+                DeptFullName = u.Dept.FullName
+                ,
+                Email = u.Email
+                ,
+                Name = u.Name
+                ,
+                Phone = u.Phone
+                ,
+                RoleIds = u.RoleIds
+                ,
+                Sex = u.Sex
+                ,
+                Status = u.Status
+            }
+            , x => x.Id == id);
 
-            UserInfoDto userContext = new UserInfoDto
+            if (userProfile == null)
+                return Problem(HttpStatusCode.NotFound, "用户不存在");
+
+            var userInfoDto = new UserInfoDto { Id = id, Profile = userProfile };
+
+            if (userProfile.RoleIds.IsNotNullOrEmpty())
             {
-                Name = user.Name,
-            };
-            userContext.Profile = _mapper.Map<UserProfileDto>(user);
-            userContext.Profile.DeptFullName = user.Dept.FullName;
-            if (!string.IsNullOrWhiteSpace(user.RoleId))
-            {
-                var roleIds = user.RoleId.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x));
-                var roles = await _roleRepository.SelectAsync(r => new { r.ID, r.Tips, r.Name }, x => roleIds.Contains(x.ID));
+                var roleIds = userProfile.RoleIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x));
+                var roles = await _roleRepository
+                                  .Where(x => roleIds.Contains(x.Id))
+                                  .Select(r => new { r.Id, r.Tips, r.Name })
+                                  .ToListAsync();
                 foreach (var role in roles)
                 {
-                    userContext.Roles.Add(role.Tips);
-                    userContext.Profile.Roles.Add(role.Name);
+                    userInfoDto.Roles.Add(role.Tips);
+                    userInfoDto.Profile.Roles.Add(role.Name);
                 }
 
                 var roleMenus = await _menuRepository.GetMenusByRoleIdsAsync(roleIds.ToArray(), true);
-                if (roleMenus.Any())
+                if (roleMenus?.Count > 0)
                 {
-                    userContext.Permissions.AddRange(roleMenus.Select(x => x.Url).Distinct());
+                    userInfoDto.Permissions.AddRange(roleMenus.Select(x => x.Url).Distinct());
                 }
             }
 
-            return userContext;
+            return userInfoDto;
         }
 
-        public async Task<UserValidateDto> UpdatePassword(UserChangePwdInputDto passwordDto, CurrenUserInfoDto currentUser)
+        public async Task<AppSrvResult> UpdatePasswordAsync(long id, UserChangePwdDto input)
         {
-            if (string.Equals(currentUser.Account, "admin", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.Forbidden,"不能修改超级管理员密码"));
-            }
+            var user = await _userRepository.FetchAsync(x => new { x.Password, x.Salt, x.Id, x.Status }, x => x.Id == id);
+            if (user == null)
+                return Problem(HttpStatusCode.NotFound, "用户不存在,参数信息不完整");
 
-            if (!string.Equals(passwordDto.Password, passwordDto.RePassword))
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.Forbidden,"新密码前后不一致"));
-            }
+            var md5OldPwdString = HashHelper.GetHashedString(HashType.MD5, input.OldPassword, user.Salt);
+            if (!md5OldPwdString.EqualsIgnoreCase(user.Password))
+                return Problem(HttpStatusCode.BadRequest, "旧密码输入错误");
 
-            var user = (await _userRepository.FetchAsync(x => new { x.Password, x.Salt, x.Name, x.Email, x.RoleId, x.Account, x.ID, x.Status }, x => x.ID == currentUser.ID)).To<SysUser>();
-            if (!string.Equals(HashHelper.GetHashedString(HashType.MD5, passwordDto.OldPassword, user.Salt), user.Password, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.Forbidden, "旧密码输入错误"));
-            }
-            await _userRepository.UpdateAsync(user, p => p.Password);
+            var newPwdString = HashHelper.GetHashedString(HashType.MD5, input.Password, user.Salt);
 
-            return _mapper.Map<UserValidateDto>(user);
+            await _userRepository.UpdateAsync(new SysUser { Id = id, Password = newPwdString }, UpdatingProps<SysUser>(x => x.Password));
+
+            return AppSrvResult();
         }
 
-        public async Task<UserValidateDto> Login(UserValidateInputDto inputDto, CurrenUserInfoDto currentUser)
+        public async Task<AppSrvResult<UserValidateDto>> LoginAsync(UserLoginDto inputDto)
         {
-            //var user4 = _userRepository.GetAll<SysMenu>().FirstOrDefault();
-            //var user0 = _rsp.GetAll<SysUser>().FirstOrDefault();
-            var user = await _userRepository.FetchAsync(x => new { x.Password, x.Salt, x.Name, x.Email, x.RoleId,x.Account,x.ID,x.Status }, x => x.Account == inputDto.Account);
-
-            dynamic log = new ExpandoObject();
-            log.ID = new Snowflake(1, 1).NextId();
-            log.Account = inputDto.Account;
-            log.CreateTime = DateTime.Now;
-            log.Device = currentUser.Device;
-            log.RemoteIpAddress = currentUser.RemoteIpAddress;
-            log.Message = string.Empty;
-            log.Succeed = false;
-            log.UserId = user?.ID;
-            log.UserName = user?.Name;
+            var user = await _userRepository.FetchAsync(x => new
+            {
+                x.Password
+                ,
+                x.Salt
+                ,
+                x.Status
+                ,
+                UserValidateInfo = new UserValidateDto
+                {
+                    Account = x.Account
+                    ,
+                    Email = x.Email
+                    ,
+                    Id = x.Id
+                    ,
+                    Name = x.Name
+                    ,
+                    RoleIds = x.RoleIds
+                }
+            }
+            , x => x.Account == inputDto.Account);
 
             if (user == null)
+                return Problem(HttpStatusCode.NotFound, "用户名或密码错误");
+
+            dynamic log = new ExpandoObject();
+            log.Account = inputDto.Account;
+            log.CreateTime = DateTime.Now;
+            var httpContext = HttpContextUtility.GetCurrentHttpContext();
+            log.Device = httpContext.Request.Headers["device"].FirstOrDefault() ?? "web";
+            log.RemoteIpAddress = httpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
+            log.Succeed = false;
+            log.UserId = user.UserValidateInfo.Id;
+            log.UserName = user.UserValidateInfo.Name;
+
+            if (user.Status != 1)
             {
-                var errorModel = new ErrorModel(ErrorCode.NotFound,"用户名或密码错误");
-                log.Message = JsonSerializer.Serialize(errorModel);
-                throw new BusinessException(errorModel);
+                var problem = Problem(HttpStatusCode.TooManyRequests, "账号已锁定");
+                log.Message = problem.Detail;
+                log.StatusCode = problem.Status;
+                _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
+                return problem;
             }
-            else
+
+            //var logins = await _loginLogRepository.SelectAsync(5, x => new { x.Id, x.Succeed,x.CreateTime }, x => x.UserId == user.Id, x => x.Id, false);
+            //var failLoginCount = logins.Count(x => x.Succeed == false);
+
+            var failLoginCount = 2;
+
+            if (failLoginCount == 5)
             {
-                if (user.Status != 1)
-                {
-                    var errorModel = new ErrorModel(ErrorCode.TooManyRequests, "账号已锁定");
-                    log.Message = JsonSerializer.Serialize(errorModel);
-                    _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
-                    throw new BusinessException(errorModel);
-                }
+                var problem = Problem(HttpStatusCode.TooManyRequests, "连续登录失败次数超过5次，账号已锁定");
+                log.Message = problem.Detail;
+                log.StatusCode = problem.Status;
+                await _userRepository.UpdateAsync(new SysUser() { Id = user.UserValidateInfo.Id, Status = 2 }, UpdatingProps<SysUser>(x => x.Status));
+                _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
+                return problem;
+            }
 
-                //var logins = await _loginLogRepository.SelectAsync(5, x => new { x.ID, x.Succeed,x.CreateTime }, x => x.UserId == user.ID, x => x.ID, false);
-                //var failLoginCount = logins.Count(x => x.Succeed == false);
+            if (HashHelper.GetHashedString(HashType.MD5, inputDto.Password, user.Salt) != user.Password)
+            {
+                var problem = Problem(HttpStatusCode.BadRequest, "用户名或密码错误");
+                log.Message = problem.Detail;
+                log.StatusCode = problem.Status;
+                _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
+                return problem;
+            }
 
-                var failLoginCount = 2;
-
-                if (failLoginCount == 5)
-                {
-                    var errorModel = new ErrorModel(ErrorCode.TooManyRequests,"连续登录失败次数超过5次，账号已锁定");
-                    log.Message = JsonSerializer.Serialize(errorModel);
-                    await _userRepository.UpdateAsync(new SysUser() { ID = user.ID, Status = 2 }, x => x.Status);
-
-                    throw new BusinessException(errorModel);
-                }
-
-                if (HashHelper.GetHashedString(HashType.MD5, inputDto.Password, user.Salt) != user.Password)
-                {
-                    var errorModel = new ErrorModel(ErrorCode.NotFound,"用户名或密码错误");
-                    log.Message = JsonSerializer.Serialize(errorModel);
-                    _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
-                    throw new BusinessException(errorModel);
-                }
-
-                if (string.IsNullOrEmpty(user.RoleId))
-                {
-                    var errorModel = new ErrorModel(ErrorCode.Forbidden, "未分配任务角色，请联系管理员");
-                    log.Message = JsonSerializer.Serialize(errorModel);
-                    _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
-                    throw new BusinessException(errorModel);
-                }
+            if (user.UserValidateInfo.RoleIds.IsNullOrEmpty())
+            {
+                var problem = Problem(HttpStatusCode.Forbidden, "未分配任务角色，请联系管理员");
+                log.Message = problem.Detail;
+                log.StatusCode = problem.Status;
+                _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
+                return problem;
             }
 
             log.Message = "登录成功";
+            log.StatusCode = (int)HttpStatusCode.Created;
             log.Succeed = true;
             _mqProducer.BasicPublish(MqExchanges.Logs, MqRoutingKeys.Loginlog, log);
-            return _mapper.Map<UserValidateDto>(user);
+
+            return user.UserValidateInfo;
         }
 
-        public async Task<UserValidateDto> GetUserValidateInfo(RefreshTokenInputDto tokenInfo)
+        public async Task<AppSrvResult<UserValidateDto>> GetUserValidateInfoAsync(string account)
         {
-            var user = await _userRepository.FetchAsync(x => new { x.Name, x.Email, x.RoleId, x.Account, x.ID, x.Status }, x => x.Account == tokenInfo.Account);
-
-            if (user == null)
+            var userValidateInfo = await _userRepository.FetchAsync(x => new UserValidateDto
             {
-                throw new BusinessException(new ErrorModel(ErrorCode.NotFound,"用户不存在,参数信息不完整"));
+                Name = x.Name
+                ,
+                Email = x.Email
+                ,
+                RoleIds = x.RoleIds
+                ,
+                Id = x.Id
+                ,
+                Account = x.Account
             }
+            , x => x.Account == account);
 
-            return _mapper.Map<UserValidateDto>(user);
+            if (userValidateInfo == null)
+                return Problem(HttpStatusCode.NotFound, "用户不存在,参数信息不完整");
+
+            return userValidateInfo;
         }
     }
 }

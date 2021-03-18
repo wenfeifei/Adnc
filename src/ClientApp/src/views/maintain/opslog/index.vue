@@ -61,7 +61,7 @@
               <span>{{ scope.row.logName }}</span>
             </el-form-item>
             <el-form-item label="账号">
-              <span>{{ scope.row.userName }}</span>
+              <span>{{ scope.row.account }}</span>
             </el-form-item>
             <el-form-item label="姓名">
               <span>{{ scope.row.userName }}</span>
@@ -84,19 +84,35 @@
           </el-form>
         </template>
       </el-table-column>
-      T
+      <el-table-column
+        label="Id"
+        prop="id"
+      />     
       <el-table-column
         label="账号"
         prop="account"
+        width="120px"
       />
       <el-table-column
         label="姓名"
         prop="userName"
+        width="120px"
       />
       <el-table-column
         label="日志类型"
         prop="logType"
+        width="100px"
       />
+      <el-table-column
+        label="日志名称"
+        prop="logName"
+        width="140px"
+      />     
+      <el-table-column
+        label="状态"
+        prop="succeed"
+        width="60px"
+      />      
       <el-table-column
         width="500px"
         label="类名"
@@ -104,7 +120,8 @@
       />
       <el-table-column
         label="方法名"
-        prop="logName"
+        prop="method"
+        width="120px"
       />
       <el-table-column
         label="时间"

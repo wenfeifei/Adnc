@@ -9,11 +9,10 @@ namespace  Adnc.Maint.Application.Services
     public interface ILogAppService : IAppService
     {
 
-        Task<PageModelDto<LoginLogDto>> GetLoginLogsPaged(LogSearchDto searchDto);
+        Task<AppSrvResult<PageModelDto<LoginLogDto>>> GetLoginLogsPagedAsync(LogSearchPagedDto searchDto);
 
-        //[EasyCachingAble(CacheKeyPrefix = EasyCachingConsts.SearchOperationLogsKeyPrefix, Expiration = 10)]
-        Task<PageModelDto<OpsLogDto>> GetOpsLogsPaged(LogSearchDto searchDto);
+        Task<AppSrvResult<PageModelDto<OpsLogDto>>> GetOpsLogsPagedAsync(LogSearchPagedDto searchDto);
 
-        Task<PageModelDto<NlogLogDto>> GetNlogLogsPaged(LogSearchDto searchDto);
+        Task<AppSrvResult<PageModelDto<NlogLogDto>>> GetNlogLogsPagedAsync(LogSearchPagedDto searchDto);
     }
 }

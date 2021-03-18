@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using EasyCaching.Core;
 using AutoMapper;
 using Adnc.Maint.Application.Dtos;
@@ -13,9 +13,8 @@ using Adnc.Maint.Core.Entities;
 using Adnc.Core.Shared.IRepositories;
 using Adnc.Application.Shared.Services;
 using Adnc.Application.Shared.Dtos;
-using Adnc.Application.Shared;
 
-namespace  Adnc.Maint.Application.Services
+namespace Adnc.Maint.Application.Services
 {
     public class CfgAppService : AppService, ICfgAppService
     {
@@ -33,104 +32,87 @@ namespace  Adnc.Maint.Application.Services
             _cache = hybridProviderFactory.GetHybridCachingProvider(EasyCachingConsts.HybridCaching);
         }
 
-        public async Task Delete(long Id)
+        public async Task<AppSrvResult> DeleteAsync(long id)
         {
-            await _cfgRepository.UpdateAsync(new SysCfg { ID = Id, IsDeleted=true }, c => c.IsDeleted);
+            await _cfgRepository.DeleteAsync(id);
+            return AppSrvResult();
         }
 
-        public async Task<PageModelDto<CfgDto>> GetPaged(CfgSearchDto searchDto)
+        public async Task<AppSrvResult<PageModelDto<CfgDto>>> GetPagedAsync(CfgSearchPagedDto search)
         {
-            //var result = new PageModelDto<CfgDto>();
-
             Expression<Func<CfgDto, bool>> whereCondition = x => true;
-            if (!string.IsNullOrWhiteSpace(searchDto.CfgName))
+            if (search.Name.IsNotNullOrWhiteSpace())
             {
-                whereCondition = whereCondition.And(x => x.CfgName.Contains(searchDto.CfgName));
+                whereCondition = whereCondition.And(x => x.Name.Contains(search.Name));
             }
-            if (!string.IsNullOrWhiteSpace(searchDto.CfgValue))
+            if (search.Value.IsNotNullOrWhiteSpace())
             {
-                whereCondition = whereCondition.And(x => x.CfgValue.Contains(searchDto.CfgValue));
+                whereCondition = whereCondition.And(x => x.Value.Contains(search.Value));
             }
 
-            //var pagedModel = await _cfgRepository.PagedAsync(searchDto.PageIndex, searchDto.PageSize, whereCondition, c => c.CreateTime, false);
-            var allCfgs = await this.GetAll();
+            var allCfgs = await this.GetAllFromCacheAsync();
 
             var pagedCfgs = allCfgs.Where(whereCondition.Compile())
                                    .OrderByDescending(x => x.CreateTime)
-                                   .Skip((searchDto.PageIndex - 1) * searchDto.PageSize)
-                                   .Take(searchDto.PageSize)
+                                   .Skip((search.PageIndex - 1) * search.PageSize)
+                                   .Take(search.PageSize)
                                    .ToArray();
 
             var result = new PageModelDto<CfgDto>()
             {
-                Count = pagedCfgs.Count()
-                ,
                 Data = pagedCfgs
                 ,
                 TotalCount = allCfgs.Count
                 ,
-                PageIndex = searchDto.PageIndex
+                PageIndex = search.PageIndex
                 ,
-                PageSize = searchDto.PageSize
-                ,
-                PageCount = ((allCfgs.Count + searchDto.PageSize - 1) / searchDto.PageSize)
+                PageSize = search.PageSize
             };
-
-            //result = _mapper.Map<PageModelDto<CfgDto>>(pagedModel);
 
             return result;
         }
 
-        public async Task Save(CfgSaveInputDto inputDto)
+        public async Task<AppSrvResult<long>> CreateAsync(CfgCreationDto input)
         {
-            if (string.IsNullOrWhiteSpace(inputDto.CfgName))
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.BadRequest, "请输入参数名称"));
-            }
+            var exist = (await this.GetAllFromCacheAsync()).Exists(c => c.Name.EqualsIgnoreCase(input.Name));
+            if (exist)
+                return Problem(HttpStatusCode.BadRequest, "参数名称已经存在");
 
-            if (string.IsNullOrWhiteSpace(inputDto.CfgValue))
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.BadRequest, "请输入参数值"));
-            }
+            var cfg = _mapper.Map<SysCfg>(input);
+            cfg.Id = IdGenerater.GetNextId();
 
-            //add
-            if (inputDto.ID == 0)
-            {
-                var exist = await _cfgRepository.ExistAsync(c => c.CfgName == inputDto.CfgName);
-                if (exist)
-                    throw new BusinessException(new ErrorModel(ErrorCode.BadRequest, "参数名称已经存在"));
+            await _cfgRepository.InsertAsync(cfg);
 
-                var enity = _mapper.Map<SysCfg>(inputDto);
-
-                //Vue处理大数字有问题，暂时不用Snowflake算法,以后完善。
-                //enity.ID = new Snowflake(1, 1).NextId();
-                enity.ID = IdGeneraterHelper.GetNextId(IdGeneraterKey.CFG);
-
-                await _cfgRepository.InsertAsync(enity);
-            }
-            //update
-            else
-            {
-                var exist = await _cfgRepository.ExistAsync(c => c.CfgName == inputDto.CfgName && c.ID != inputDto.ID);
-                if (exist)
-                    throw new BusinessException(new ErrorModel(ErrorCode.BadRequest, "参数名称已经存在"));
-
-                var enity = _mapper.Map<SysCfg>(inputDto);
-
-                await _cfgRepository.UpdateAsync(enity);
-            }
+            return cfg.Id;
         }
 
-        public async Task<CfgDto> Get(long id)
+        public async Task<AppSrvResult> UpdateAsync(long id, CfgUpdationDto input)
         {
-            return (await this.GetAll()).Where(x => x.ID == id).FirstOrDefault();
+            var exist = (await this.GetAllFromCacheAsync()).Exists(c => c.Name.EqualsIgnoreCase(input.Name) && c.Id != id);
+            if (exist)
+                return Problem(HttpStatusCode.BadRequest, "参数名称已经存在");
+
+            var entity = _mapper.Map<SysCfg>(input);
+
+            entity.Id = id;
+
+            var updatingProps = UpdatingProps<SysCfg>(x => x.Name, x => x.Value, x => x.Description);
+
+            await _cfgRepository.UpdateAsync(entity, updatingProps);
+
+            return AppSrvResult();
         }
 
-        private async Task<List<CfgDto>> GetAll()
+        public async Task<AppSrvResult<CfgDto>> GetAsync(long id)
+        {
+            return (await this.GetAllFromCacheAsync()).Where(x => x.Id == id).FirstOrDefault();
+        }
+
+        private async Task<List<CfgDto>> GetAllFromCacheAsync()
         {
             var cahceValue = await _cache.GetAsync(EasyCachingConsts.CfgListCacheKey, async () =>
             {
-                var allCfgs = await _cfgRepository.GetAll().ToListAsync();
+                var allCfgs = await _cfgRepository.GetAll(writeDb: true).ToListAsync();
                 return _mapper.Map<List<CfgDto>>(allCfgs);
             }, TimeSpan.FromSeconds(EasyCachingConsts.OneYear));
 

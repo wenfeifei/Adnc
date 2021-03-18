@@ -1,64 +1,66 @@
-﻿using AutoMapper;
-using System;
+﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using MongoDB.Driver;
+using AutoMapper;
+using System.Collections.Generic;
+using Adnc.Core.Maint.Entities;
+using Adnc.Application.Shared.Dtos;
 using Adnc.Core.Shared.IRepositories;
 using Adnc.Maint.Core.Entities;
 using Adnc.Maint.Application.Dtos;
 using Adnc.Infr.Common.Extensions;
-using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
-using System.Collections.Generic;
-using Adnc.Core.Maint.Entities;
-using Adnc.Application.Shared.Dtos;
+using Adnc.Application.Shared.Services;
 
-namespace  Adnc.Maint.Application.Services
+namespace Adnc.Maint.Application.Services
 {
-    public class LogAppService : ILogAppService
+    public class LogAppService : AppService, ILogAppService
     {
         private readonly IMapper _mapper;
         private readonly IMongoRepository<SysOperationLog> _opsLogRepository;
         private readonly IMongoRepository<SysNloglog> _nlogLogRepository;
-        private readonly IEfRepository<SysLoginLog> _loginLogRepository;
+        private readonly IMongoRepository<SysLoginLog> _loginLogRepository;
 
         public LogAppService(IMapper mapper,
             IMongoRepository<SysOperationLog> opsLogRepository
-            , IEfRepository<SysLoginLog> loginLogRepository
+            , IMongoRepository<SysLoginLog> loginLogRepository
             , IMongoRepository<SysNloglog> nlogLogRepository)
-       {
+        {
             _mapper = mapper;
             _opsLogRepository = opsLogRepository;
             _loginLogRepository = loginLogRepository;
             _nlogLogRepository = nlogLogRepository;
         }
 
-        public async Task<PageModelDto<LoginLogDto>> GetLoginLogsPaged(LogSearchDto searchDto)
+        public async Task<AppSrvResult<PageModelDto<LoginLogDto>>> GetLoginLogsPagedAsync(LogSearchPagedDto searchDto)
         {
-
-            Expression<Func<SysLoginLog, bool>> whereCondition = x => true;
+            var builder = Builders<SysLoginLog>.Filter;
+            var filters = new List<FilterDefinition<SysLoginLog>>();
 
             if (searchDto.BeginTime.HasValue)
             {
-                whereCondition = whereCondition.And(x => x.CreateTime >= searchDto.BeginTime.Value);
+                filters.Add(builder.Gte(l => l.CreateTime, searchDto.BeginTime));
             }
 
             if (searchDto.EndTime.HasValue)
             {
-                whereCondition = whereCondition.And(x => x.CreateTime <= searchDto.EndTime.Value);
+                filters.Add(builder.Lte(l => l.CreateTime, searchDto.EndTime));
             }
 
-            if (!string.IsNullOrWhiteSpace(searchDto.Account))
+            if (searchDto.Account.IsNotNullOrWhiteSpace())
             {
-                whereCondition = whereCondition.And(x => x.Account == searchDto.Account);
+                filters.Add(builder.Eq(l => l.Account, searchDto.Account));
             }
 
-            if (!string.IsNullOrWhiteSpace(searchDto.Device))
+            if (searchDto.Method.IsNotNullOrWhiteSpace())
             {
-                whereCondition = whereCondition.And(x => x.Device == searchDto.Device);
+                filters.Add(builder.Eq(l => l.Device, searchDto.Device));
             }
 
-            var pagedModel = await _loginLogRepository.PagedAsync(searchDto.PageIndex, searchDto.PageSize, whereCondition, x => x.CreateTime, false);
+            var filter = filters.Count > 0 ? builder.And(filters) : builder.Where(x => true);
+
+            var pagedModel = await _loginLogRepository.PagedAsync(searchDto.PageIndex, searchDto.PageSize, filter, x => x.CreateTime, false);
 
             var result = _mapper.Map<PageModelDto<LoginLogDto>>(pagedModel);
 
@@ -66,7 +68,7 @@ namespace  Adnc.Maint.Application.Services
         }
 
 
-        public async Task<PageModelDto<OpsLogDto>> GetOpsLogsPaged(LogSearchDto searchDto)
+        public async Task<AppSrvResult<PageModelDto<OpsLogDto>>> GetOpsLogsPagedAsync(LogSearchPagedDto searchDto)
         {
             var builder = Builders<SysOperationLog>.Filter;
             var filters = new List<FilterDefinition<SysOperationLog>>();
@@ -81,12 +83,12 @@ namespace  Adnc.Maint.Application.Services
                 filters.Add(builder.Lte(l => l.CreateTime, searchDto.EndTime));
             }
 
-            if (!string.IsNullOrWhiteSpace(searchDto.Account))
+            if (searchDto.Account.IsNotNullOrWhiteSpace())
             {
                 filters.Add(builder.Eq(l => l.Account, searchDto.Account));
             }
 
-            if (!string.IsNullOrWhiteSpace(searchDto.Method))
+            if (searchDto.Method.IsNotNullOrWhiteSpace())
             {
                 filters.Add(builder.Eq(l => l.Method, searchDto.Method));
             }
@@ -100,7 +102,7 @@ namespace  Adnc.Maint.Application.Services
             return result;
         }
 
-        public async Task<PageModelDto<NlogLogDto>> GetNlogLogsPaged(LogSearchDto searchDto)
+        public async Task<AppSrvResult<PageModelDto<NlogLogDto>>> GetNlogLogsPagedAsync(LogSearchPagedDto searchDto)
         {
             var builder = Builders<SysNloglog>.Filter;
             var filters = new List<FilterDefinition<SysNloglog>>();
@@ -120,7 +122,7 @@ namespace  Adnc.Maint.Application.Services
             //    filters.Add(builder.Eq(l => l.Properties., searchDto.Account));
             //}
 
-            if (!string.IsNullOrWhiteSpace(searchDto.Method))
+            if (searchDto.Method.IsNotNullOrWhiteSpace())
             {
                 filters.Add(builder.Eq(l => l.Properties.Method, searchDto.Method));
             }

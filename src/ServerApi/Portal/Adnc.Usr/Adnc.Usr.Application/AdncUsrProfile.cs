@@ -11,25 +11,27 @@ namespace Adnc.Usr.Application
     {
         public AdncUsrProfile()
         {
-            CreateMap(typeof(IPagedModel<>), typeof(PageModelDto<>));
+            CreateMap(typeof(IPagedModel<>), typeof(PageModelDto<>)).ForMember("XData", opt => opt.Ignore());
             CreateMap(typeof(ZTreeNodeDto<,>), typeof(Node<>)).IgnoreAllPropertiesWithAnInaccessibleSetter();
-            CreateMap<MenuSaveInputDto, SysMenu>();
+            CreateMap<MenuCreationDto, SysMenu>();
+            CreateMap<MenuUpdationDto, SysMenu>();
             CreateMap<SysMenu, MenuDto>().ReverseMap();
-            CreateMap<MenuDto, RouterMenuDto>();
-            CreateMap<SysMenu, RouterMenuDto>();
+            CreateMap<MenuDto, MenuRouterDto>();
+            CreateMap<SysMenu, MenuRouterDto>();
             CreateMap<SysMenu, MenuNodeDto>();
             CreateMap<MenuDto, MenuNodeDto>();
             CreateMap<SysRelation, RelationDto>();
-            CreateMap<RoleSaveInputDto, SysRole>();
+            CreateMap<RoleCreationDto, SysRole>();
+            CreateMap<RoleUpdationDto, SysRole>();
             CreateMap<SysRole, RoleDto>().ReverseMap();
-            CreateMap<UserSaveInputDto, SysUser>();
-            CreateMap<SysUser, UserDto>().ReverseMap();
-            CreateMap<SysUser, UserProfileDto>();
-            CreateMap<SysUser, UserValidateDto>();
-            CreateMap<DeptSaveInputDto, SysDept>();
+            CreateMap<UserCreationDto, SysUser>();
+            CreateMap<UserUpdationDto, SysUser>();
+            CreateMap<SysUser, UserDto>().ForMember(dest => dest.Password, opt => opt.Ignore());
+            CreateMap<DeptCreationDto, SysDept>();
+            CreateMap<DeptUpdationDto, SysDept>();
             CreateMap<SysDept, DeptDto>();
-            CreateMap<SysDept, DeptNodeDto>();
-            CreateMap<DeptDto, DeptNodeDto>();
+            CreateMap<SysDept, DeptTreeeDto>();
+            CreateMap<DeptDto, DeptTreeeDto>();
         }
     }
 }

@@ -3,46 +3,48 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Adnc.Core.Shared.Entities;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace Adnc.Maint.Core.Entities
 {
 	/// <summary>
 	/// 登录日志
 	/// </summary>
-	[Table("SysLoginLog")]
-	[Description("登录日志")]
-    public class SysLoginLog : EfEntity
-    {
+	//[Table("SysLoginLog")]
+	//[Description("登录日志")]
+    public class SysLoginLog : MongoEntity
+	{
 
-        [StringLength(20)]
-		[Column("Device")]
+        [StringLength(16)]
+		//[Column("Device")]
 		public string Device { get; set; }
 
 		[StringLength(255)]
-		[Column("Message")]
+		//[Column("Message")]
 		public string Message { get; set; }
 
-		[Column("Succeed")]
+		//[Column("Succeed")]
 		public bool Succeed { get; set; }
 
-		[Column("UserId")]
+		public int StatusCode { get; set; }
+
+		//[Column("UserId")]
 		public long? UserId { get; set; }
 
-		[StringLength(32)]
+		//[StringLength(16)]
 		[Column("Account")]
 		public string Account { get; set; }
 
-        [StringLength(64)]
+        //[StringLength(16)]
         [Column("UserName")]
 
         public string UserName { get; set; }
 
-        [Column("RemoteIpAddress")]
-        [StringLength(22)]
+        //[Column("RemoteIpAddress")]
+        [StringLength(15)]
         public string RemoteIpAddress { get; set; }
 
-		[Description("创建时间")]
-		[Column("CreateTime")]
+		[BsonDateTimeOptions(Kind = DateTimeKind.Local)]
 		public DateTime? CreateTime { get; set; }
 	}
 }

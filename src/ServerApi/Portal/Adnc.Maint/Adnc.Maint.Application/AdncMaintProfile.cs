@@ -11,28 +11,22 @@ namespace Adnc.Maint.Application
     {
         public AdncMaintProfile()
         {
-            CreateMap(typeof(IPagedModel<>), typeof(PageModelDto<>));
-            CreateMap<OpsLogSaveInputDto, SysOperationLog>();
+            CreateMap(typeof(IPagedModel<>), typeof(PageModelDto<>)).ForMember("XData", opt => opt.Ignore());
+            CreateMap<OpsLogCreationDto, SysOperationLog>();
             CreateMap<SysOperationLog, OpsLogDto>();
             CreateMap<SysLoginLog, LoginLogDto>();
             CreateMap<SysNloglog, NlogLogDto>();
-            CreateMap<CfgSaveInputDto, SysCfg>();
+            CreateMap<CfgCreationDto, SysCfg>();
             CreateMap<SysCfg, CfgDto>();
 
 
-            CreateMap<DictSaveInputDto, SysDict>();
+            CreateMap<DictCreationDto, SysDict>();
             CreateMap<SysDict, DictDto>();
             CreateMap<SysNotice, NoticeDto>().ReverseMap();
 
-            CreateMap<OpsLogSaveInputDto, SysOperationLog>();
-
-            CreateMap<SysOperationLog, OpsLogDto>();
-            CreateMap<SysLoginLog, LoginLogDto>();
-            CreateMap<SysNloglog, NlogLogDto>();
-
-            CreateMap<TaskSaveInputDto, SysTask>();
-            CreateMap<SysTask, TaskDto>();
-            CreateMap<SysTaskLog, TaskLogDto>().ReverseMap();
+            //CreateMap<TaskSaveInputDto, SysTask>();
+            //CreateMap<SysTask, TaskDto>();
+            //CreateMap<SysTaskLog, TaskLogDto>().ReverseMap();
         }
     }
 }

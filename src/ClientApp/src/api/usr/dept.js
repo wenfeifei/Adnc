@@ -17,9 +17,15 @@ export function list() {
 }
 
 export function save(data) {
+  let methodName = 'post'
+  let url = '/usr/depts'
+  if (data.id > 0) {
+    methodName = 'put'
+    url = url + '/' + data.id
+  }
   return request({
-    url: '/usr/depts',
-    method: 'post',
+    url: url,
+    method: methodName,
     data
   })
 }

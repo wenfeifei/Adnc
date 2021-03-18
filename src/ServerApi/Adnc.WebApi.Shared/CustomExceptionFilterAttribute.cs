@@ -1,54 +1,73 @@
 ﻿using System;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Adnc.Infr.Common;
-using Adnc.Application.Shared;
+using Adnc.Infr.Common.Helper;
+using Adnc.Infr.Common.Exceptions;
 
 namespace Microsoft.AspNetCore.Mvc.Filters
 {
-    public class CustomExceptionFilterAttribute : ExceptionFilterAttribute
+    /// <summary>
+    /// 异常拦截器 拦截 StatusCode>=500 的异常
+    /// </summary>
+    public sealed class CustomExceptionFilterAttribute : ExceptionFilterAttribute
     {
         private readonly ILogger<CustomExceptionFilterAttribute> _logger;
+        private readonly IWebHostEnvironment _env;
 
-        public CustomExceptionFilterAttribute(ILogger<CustomExceptionFilterAttribute> logger)
+        public CustomExceptionFilterAttribute(ILogger<CustomExceptionFilterAttribute> logger
+            , IWebHostEnvironment env)
         {
             _logger = logger;
+            _env = env;
         }
 
         public override void OnException(ExceptionContext context)
         {
-            Exception exception = context.Exception;
-            JsonResult result = null;
-            if (exception is BusinessException)
+            var status = 500;
+            var exception = context.Exception;
+            var eventId = new EventId(exception.HResult);
+            var userContext = context.HttpContext.RequestServices.GetService<UserContext>();
+            var descriptor = context.ActionDescriptor as ControllerActionDescriptor;
+            //string className = descriptor.ControllerName;
+            //string method = descriptor.ActionName;
+            var hostAndPort = context.HttpContext.Request.Host.HasValue ? context.HttpContext.Request.Host.Value : string.Empty;
+            var requestUrl = string.Concat(hostAndPort, context.HttpContext.Request.Path);
+            var type = string.Concat("https://httpstatuses.com/", status);
+            
+            string title;
+            string detial;
+            if (exception is IAdncException)
             {
-                result = new JsonResult(exception.Message)
-                {
-                    StatusCode = exception.HResult
-                };
+                title = "参数错误";
+                detial = exception.Message;
             }
             else
             {
-                result = new JsonResult(new ErrorModel(ErrorCode.InternalServerError, "服务器异常"))
-                {
-                    StatusCode = 500
-                };
-
-                var userContext = context.HttpContext.RequestServices.GetService<UserContext>();
-
-                var descriptor = context.ActionDescriptor as ControllerActionDescriptor;
-                string className = descriptor.ControllerName;
-                string method = descriptor.ActionName;
-                string requestUrl = context.HttpContext.Request.Path;
-                long userId = userContext.ID;
-                //var parms = ex.Data?.ToDictionary().Select(k => k.Key + "=" + k.Value).Join() ?? "";
-
-                _logger.LogError(exception, exception.Message);
-                //Agent.Tracer.CurrentTransaction.CaptureException(exception);
+                title = _env.IsDevelopment() ? exception.Message : $"系统异常";
+                detial = _env.IsDevelopment() ? ExceptionHelper.GetExceptionDetail(exception) : $"系统异常,请联系管理员({eventId})";
+                _logger.LogError(eventId, exception, exception.Message, requestUrl, userContext.Id);
             }
 
-            context.Result = result;
+            var problemDetails = new ProblemDetails
+            {
+                Title = title
+                ,
+                Detail = detial
+                ,
+                Type = type
+                ,
+                Status = status
+                ,
+                Instance = requestUrl
+            };
+
+            context.Result = new ObjectResult(problemDetails) { StatusCode = status };
             context.ExceptionHandled = true;
         }
 
@@ -57,5 +76,7 @@ namespace Microsoft.AspNetCore.Mvc.Filters
             OnException(context);
             return Task.CompletedTask;
         }
+
+
     }
 }

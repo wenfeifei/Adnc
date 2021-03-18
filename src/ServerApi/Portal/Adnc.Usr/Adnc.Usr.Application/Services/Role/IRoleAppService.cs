@@ -10,23 +10,30 @@ namespace Adnc.Usr.Application.Services
 {
     public interface IRoleAppService : IAppService
     {
-        Task<PageModelDto<RoleDto>> GetPaged(RoleSearchDto searchDto);
+        Task<AppSrvResult<PageModelDto<RoleDto>>> GetPagedAsync(RolePagedSearchDto input);
 
-        [OpsLog(LogName = "新增/修改角色")]
-        Task Save(RoleSaveInputDto saveDto);
+        [OpsLog(LogName = "新增角色")]
+        [EasyCachingEvict(CacheKey = EasyCachingConsts.RoleAllCacheKey)]
+        Task<AppSrvResult<long>> CreateAsync(RoleCreationDto input);
+
+        [OpsLog(LogName = "修改角色")]
+        [EasyCachingEvict(CacheKey = EasyCachingConsts.RoleAllCacheKey)]
+        Task<AppSrvResult> UpdateAsync(long id, RoleUpdationDto input);
 
         [OpsLog(LogName = "删除角色")]
-        [EasyCachingEvict(CacheKeys = new[] { EasyCachingConsts.MenuRelationCacheKey, EasyCachingConsts.MenuCodesCacheKey })]
-        Task Delete(long Id);
+        [EasyCachingEvict(CacheKeys = new[] { EasyCachingConsts.MenuRelationCacheKey, EasyCachingConsts.MenuCodesCacheKey, EasyCachingConsts.RoleAllCacheKey })]
+        Task<AppSrvResult> DeleteAsync(long Id);
 
-        Task<dynamic> GetRoleTreeListByUserId(long UserId);
+        Task<AppSrvResult<dynamic>> GetRoleTreeListByUserIdAsync(long userId);
 
         [OpsLog(LogName = "设置角色权限")]
         [EasyCachingEvict(CacheKeys = new[] { EasyCachingConsts.MenuRelationCacheKey, EasyCachingConsts.MenuCodesCacheKey })]
-        Task SaveRolePermisson(PermissonSaveInputDto inputDto);
+        Task<AppSrvResult> SetPermissonsAsync(RoleSetPermissonsDto input);
 
-        ValueTask<bool> ExistPermissions(RolePermissionsCheckInputDto inputDto);
+        ValueTask<AppSrvResult<bool>> ExistPermissionsAsync(RolePermissionsCheckerDto input);
 
-        Task<IEnumerable<string>> GetPermissions(RolePermissionsCheckInputDto inputDto);
+        Task<AppSrvResult<List<string>>> GetPermissionsAsync(RolePermissionsCheckerDto input);
+
+        Task<List<RoleDto>> GetAllFromCacheAsync();
     }
 }

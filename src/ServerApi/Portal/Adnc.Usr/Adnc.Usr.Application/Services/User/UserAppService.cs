@@ -1,136 +1,144 @@
-﻿using AutoMapper;
-using System.Threading.Tasks;
-using Adnc.Core.Shared.IRepositories;
-using Adnc.Usr.Application.Dtos;
-using System.Linq.Expressions;
+﻿using System;
+using System.Net;
 using System.Linq;
-using System;
+using System.Threading.Tasks;
+using System.Linq.Expressions;
+using System.Collections.Generic;
+using AutoMapper;
+using Adnc.Core.Shared.IRepositories;
+using Adnc.Infr.Common.Helper;
 using Adnc.Infr.Common.Extensions;
 using Adnc.Usr.Core.Entities;
-using System.Collections.Generic;
-using Adnc.Infr.Common.Helper;
-using Adnc.Usr.Core.CoreServices;
+using Adnc.Usr.Core.Services;
+using Adnc.Usr.Application.Dtos;
 using Adnc.Application.Shared.Dtos;
-using Adnc.Application.Shared;
+using Adnc.Application.Shared.Services;
 
 namespace Adnc.Usr.Application.Services
 {
-    public class UserAppService : IUserAppService
+    public class UserAppService : AppService, IUserAppService
     {
         private readonly IMapper _mapper;
         private readonly IEfRepository<SysUser> _userRepository;
-        private readonly IEfRepository<SysDept> _deptRepository;
-        private readonly IEfRepository<SysRole> _roleRepository;
-        private readonly IUsrManagerService _usrManager;
+        private readonly IDeptAppService _deptAppService;
+        private readonly IRoleAppService _roleAppService;
+        private readonly UsrManager _usrManager;
 
         public UserAppService(IMapper mapper,
             IEfRepository<SysUser> userRepository,
-            IEfRepository<SysDept> deptRepository,
-            IEfRepository<SysRole> roleRepository,
-            IUsrManagerService usrManager)
+            IDeptAppService deptAppService,
+            IRoleAppService roleAppService,
+            UsrManager usrManager)
         {
             _mapper = mapper;
             _userRepository = userRepository;
-            _deptRepository = deptRepository;
-            _roleRepository = roleRepository;
+            _deptAppService = deptAppService;
+            _roleAppService = roleAppService;
             _usrManager = usrManager;
         }
 
-        public async Task ChangeStatus(long Id)
+        public async Task<AppSrvResult> ChangeStatusAsync(long id, int status)
         {
-            var user = await _userRepository.FetchAsync(u => new { u.ID, u.Status }, x => x.ID == Id);
-            user.Status = (int)(user.Status == (int)ManageStatus.Enabled ? ManageStatus.Disabled : ManageStatus.Enabled);
-
-            await _userRepository.UpdateAsync(user, x => x.Status);
+            await _userRepository.UpdateAsync(new SysUser { Id = id, Status = status }, UpdatingProps<SysUser>(x => x.Status));
+            return AppSrvResult();
         }
 
-        public async Task ChangeStatus(UserChangeStatusInputDto changeDto)
+        public async Task<AppSrvResult> ChangeStatusAsync(UserChangeStatusDto input)
         {
-            string userids = string.Join<long>(",", changeDto.UserIds);
-            await _userRepository.UpdateRangeAsync(u => userids.Contains(u.ID.ToString()), u => new SysUser { Status = changeDto.Status });
+            string userids = string.Join<long>(",", input.UserIds);
+            await _userRepository.UpdateRangeAsync(u => userids.Contains(u.Id.ToString()), u => new SysUser { Status = input.Status });
+            return AppSrvResult();
         }
 
-        public async Task Delete(long Id)
+        public async Task<AppSrvResult> DeleteAsync(long id)
         {
-            if (Id <= 2)
+            await _userRepository.DeleteAsync(id);
+            return AppSrvResult();
+        }
+
+        public async Task<AppSrvResult<long>> CreateAsync(UserCreationDto input)
+        {
+            if (await _userRepository.AnyAsync(x => x.Account == input.Account))
+                return Problem(HttpStatusCode.BadRequest, "账号已经存在");
+
+            var user = _mapper.Map<SysUser>(input);
+            user.Id = IdGenerater.GetNextId();
+            user.Salt = SecurityHelper.GenerateRandomCode(5);
+            user.Password = HashHelper.GetHashedString(HashType.MD5, user.Password, user.Salt);
+            user.UserFinance = new SysUserFinance { Id = user.Id, Amount = 0.00M };
+            await _userRepository.InsertAsync(user);
+
+            return user.Id;
+        }
+
+        public async Task<AppSrvResult> UpdateAsync(long id,UserUpdationDto input)
+        {
+            var user = _mapper.Map<SysUser>(input);
+
+            user.Id = id;
+
+            var updatingProps = UpdatingProps<SysUser>(x => x.Name,
+                                                       x => x.DeptId,
+                                                       x => x.Sex,
+                                                       x => x.Phone,
+                                                       x => x.Email,
+                                                       x => x.Birthday,
+                                                       x => x.Status
+                                                      );
+            await _userRepository.UpdateAsync(user, updatingProps);
+
+            return AppSrvResult();
+        }
+
+        public async Task<AppSrvResult<PageModelDto<UserDto>>> GetPagedAsync(UserSearchPagedDto search)
+        {
+            Expression<Func<SysUser, bool>> whereCondition = x => true;
+            if (search.Account.IsNotNullOrWhiteSpace())
             {
-                throw new BusinessException(new ErrorModel(ErrorCode.Forbidden,"不能删除初始用户"));
+                whereCondition = whereCondition.And(x => x.Account.Contains(search.Account));
             }
-            await _userRepository.UpdateAsync(new SysUser() { ID = Id, Status = (int)ManageStatus.Deleted }, x => x.Status);
-        }
 
-        public async Task Save(UserSaveInputDto saveDto)
-        {
-            var user = _mapper.Map<SysUser>(saveDto);
-            if (user.ID < 1)
+            if (search.Name.IsNotNullOrWhiteSpace())
             {
-                if (await _userRepository.ExistAsync(x => x.Account == user.Account))
+                whereCondition = whereCondition.And(x => x.Name.Contains(search.Name));
+            }
+
+            var pagedModel = await _userRepository.PagedAsync(search.PageIndex, search.PageSize, whereCondition, x => x.Id, false);
+            var pageModelDto = _mapper.Map<PageModelDto<UserDto>>(pagedModel);
+
+            pageModelDto.XData = await _deptAppService.GetSimpleListAsync();
+
+            if (pageModelDto.RowsCount > 0)
+            {
+                var deptIds = pageModelDto.Data.Where(d => d.DeptId != null).Select(d => d.DeptId).Distinct().ToList();
+                //var depts = await _deptRepository.SelectAsync(d => new { d.Id, d.FullName }, x => deptIds.Contains(x.Id));
+                var depts = (await _deptAppService.GetAllFromCacheAsync())
+                            .Where(x => deptIds.Contains(x.Id))
+                            .Select(d => new { d.Id, d.FullName });
+                //var roles = await _roleRepository.SelectAsync(r => new { r.Id, r.Name }, x => true);
+                var roles = (await _roleAppService.GetAllFromCacheAsync())
+                            .Select(r => new { r.Id, r.Name });
+
+                foreach (var user in pageModelDto.Data)
                 {
-                    throw new BusinessException(new ErrorModel(ErrorCode.Forbidden,"用户已存在"));
-                }
-
-                user.ID = IdGeneraterHelper.GetNextId(IdGeneraterKey.USER);
-                user.Salt = SecurityHelper.GenerateRandomCode(5);
-                user.Password = HashHelper.GetHashedString(HashType.MD5, user.Password, user.Salt);
-                await _usrManager.AddUser(user);
-            }
-            else
-            {
-                await _userRepository.UpdateAsync(user,
-                     x => x.Name,
-                     x => x.DeptId,
-                     x => x.Sex,
-                     x => x.Phone,
-                     x => x.Email,
-                     x => x.Birthday,
-                     x => x.Status);
-            }
-        }
-
-        public async Task<PageModelDto<UserDto>> GetPaged(UserSearchDto searchDto)
-        {
-            Expression<Func<SysUser, bool>> whereCondition = x => x.Status > 0;
-            if (!string.IsNullOrWhiteSpace(searchDto.Account))
-            {
-                whereCondition = whereCondition.And(x => x.Account.Contains(searchDto.Account));
-            }
-
-            if (!string.IsNullOrWhiteSpace(searchDto.Name))
-            {
-                whereCondition = whereCondition.And(x => x.Name.Contains(searchDto.Name));
-            }
-
-            var pagedModel = await _userRepository.PagedAsync(searchDto.PageIndex, searchDto.PageSize, whereCondition, x => x.ID, false);
-            var result = _mapper.Map<PageModelDto<UserDto>>(pagedModel);
-            if (result.Count > 0)
-            {
-                var deptIds = result.Data.Where(d => d.DeptId != null).Select(d => d.DeptId).Distinct().ToList();
-                //var roleIds = roleIdstring.ToArray().Distinct().Where(x => x!=char.MinValue && x != ',').ToArray();
-
-                var depts = await _deptRepository.SelectAsync(d => new { d.ID, d.FullName }, x => deptIds.Contains(x.ID));
-                var roles = await _roleRepository.SelectAsync(r => new { r.ID, r.Name }, x => true);
-                foreach (var user in result.Data)
-                {
-                    user.DeptName = depts.FirstOrDefault(x => x.ID == user.DeptId)?.FullName;
-                    var roleIds = string.IsNullOrWhiteSpace(user.RoleId) 
+                    user.DeptName = depts.FirstOrDefault(x => x.Id == user.DeptId)?.FullName;
+                    var roleIds = string.IsNullOrWhiteSpace(user.RoleIds)
                         ? new List<long>()
-                        : user.RoleId.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x))
+                        : user.RoleIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x))
                         ;
-                    user.RoleName = string.Join(',', roles.Where(x => roleIds.Contains(x.ID)).Select(x => x.Name));
+                    user.RoleNames = string.Join(',', roles.Where(x => roleIds.Contains(x.Id)).Select(x => x.Name));
                 }
             }
 
-            return result;
+            return pageModelDto;
         }
 
-        public async Task SetRole(RoleSetInputDto setDto)
+        public async Task<AppSrvResult> SetRoleAsync(long id, UserSetRoleDto input)
         {
-            if (setDto.ID < 1)
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.Forbidden, "禁止修改管理员角色"));
-            }
-            var roleIdStr = setDto.RoleIds == null ? null : string.Join(",", setDto.RoleIds);
-            await _userRepository.UpdateAsync(new SysUser() { ID = setDto.ID, RoleId = roleIdStr }, x => x.RoleId);
+            var roleIdStr = input.RoleIds == null ? null : string.Join(",", input.RoleIds);
+            await _userRepository.UpdateAsync(new SysUser() { Id = id, RoleIds = roleIdStr }, UpdatingProps<SysUser>(x => x.RoleIds));
+
+            return AppSrvResult();
         }
     }
 }

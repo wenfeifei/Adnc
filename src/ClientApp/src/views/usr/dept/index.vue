@@ -1,13 +1,15 @@
 <template>
   <div class="app-container">
     <div class="block">
-      <el-button type="success" size="mini" icon="el-icon-plus" @click.native="add">{{ $t('button.add') }}</el-button>
+      <el-button v-permission="['/dept/add']" type="success" size="mini" icon="el-icon-plus" @click.native="add">{{ $t('button.add') }}</el-button>
     </div>
-    <tree-table
+    <el-table
       :data="data"
-      :expand-all="expandAll"
-      highlight-current-row
+      style="width: 100%;margin-bottom: 20px;"
+      row-key="id"
       border
+      :default-expand-all="true"
+      :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
     >
       <el-table-column label="简称">
         <template slot-scope="scope">
@@ -21,58 +23,44 @@
       </el-table-column>
       <el-table-column label="顺序">
         <template slot-scope="scope">
-          <span>{{ scope.row.num }}</span>
+          <span>{{ scope.row.ordinal }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作">
-        <template slot-scope="{row}">
-          <el-button v-permission="['/dept/update']" type="primary" size="mini" @click="edit(row)">编辑</el-button>
-          <el-button v-permission="['/dept/delete']" type="danger" size="mini" @click="remove(row)">删除</el-button>
+        <template slot-scope="scope">
+          <el-button v-permission="['/dept/update']" type="primary" size="mini" @click="edit(scope.row)">编辑</el-button>
+          <el-button v-permission="['/dept/delete']" type="danger" size="mini" @click="remove(scope.row)">删除</el-button>
         </template>
       </el-table-column>
-    </tree-table>
+    </el-table>
     <el-dialog
       :title="formTitle"
       :visible.sync="formVisible"
-      width="70%">
+      width="70%"
+    >
       <el-form ref="form" :model="form" :rules="rules" label-width="120px">
         <el-row>
           <el-col :span="12">
             <el-form-item label="名称" prop="simpleName">
-              <el-input v-model="form.simpleName" minlength=1></el-input>
+              <el-input v-model="form.simpleName" minlength="1" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="全称" prop="fullName">
-              <el-input v-model="form.fullName"  minlength=1></el-input>
+              <el-input v-model="form.fullName" minlength="1" />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="排序" prop="num">
-              <el-input type="number" v-model="form.num"></el-input>
+            <el-form-item label="排序" prop="ordinal">
+              <el-input v-model="form.ordinal" type="number" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="父部门" >
-              <el-input
-                placeholder="请选择父部门"
-                v-model="form.pname"
-                readonly="readonly"
-                @click.native="showTree = !showTree">
-              </el-input>
-              <el-tree v-if="showTree"
-                       empty-text="暂无数据"
-                       :expand-on-click-node="false"
-                       :data="data"
-                       :props="defaultProps"
-                       @node-click="handleNodeClick"
-                       class="input-tree">
-              </el-tree>
-
+          <el-col :span="12" prop="pid">
+            <el-form-item label="父部门">
+              <treeselect v-model="form.pid" :options="deptTreeData" placeholder="请选择父部门" />
             </el-form-item>
           </el-col>
-
 
         </el-row>
         <el-form-item>

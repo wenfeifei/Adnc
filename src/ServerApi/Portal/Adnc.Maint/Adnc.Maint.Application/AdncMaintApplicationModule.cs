@@ -7,6 +7,7 @@ using Adnc.Infr.Mq.RabbitMq;
 using Adnc.Maint.Core;
 using Adnc.Application.Shared.Interceptors;
 using Adnc.Application.Shared.Services;
+using FluentValidation;
 
 namespace Adnc.Maint.Application
 {
@@ -34,6 +35,8 @@ namespace Adnc.Maint.Application
             //注册操作日志拦截器
             builder.RegisterType<OpsLogInterceptor>()
                    .InstancePerLifetimeScope();
+            builder.RegisterType<OpsLogAsyncInterceptor>()
+                   .InstancePerLifetimeScope();
 
             //注册cache拦截器
             builder.RegisterType<EasyCachingInterceptor>()
@@ -46,6 +49,12 @@ namespace Adnc.Maint.Application
                 .InstancePerLifetimeScope()
                 .EnableInterfaceInterceptors()
                 .InterceptedBy(typeof(OpsLogInterceptor),typeof(EasyCachingInterceptor));
+
+            //注册DtoValidators
+            builder.RegisterAssemblyTypes(this.ThisAssembly)
+                .Where(t => t.IsClosedTypeOf(typeof(IValidator<>)))
+                .AsImplementedInterfaces()
+                .InstancePerLifetimeScope();
         }
 
         private void LoadDepends(ContainerBuilder builder)

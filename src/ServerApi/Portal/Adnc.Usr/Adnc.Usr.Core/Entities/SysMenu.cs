@@ -12,13 +12,13 @@ namespace Adnc.Usr.Core.Entities
 	/// </summary>
 	[Table("SysMenu")]
 	[Description("菜单")]
-	public class SysMenu : EfAuditEntity
+	public class SysMenu : EfFullAuditEntity
 	{
 		/// <summary>
 		/// 编号
 		/// </summary>
 		[Description("编号")]
-		[StringLength(32)]
+		[StringLength(16)]
 		[Column("Code")]
 		public string Code { get; set; }
 
@@ -41,7 +41,7 @@ namespace Adnc.Usr.Core.Entities
 		/// 图标
 		/// </summary>
 		[Description("图标")]
-		[StringLength(32)]
+		[StringLength(16)]
 		[Column("Icon")]
 		public string Icon { get; set; }
 
@@ -70,22 +70,22 @@ namespace Adnc.Usr.Core.Entities
 		/// 名称
 		/// </summary>
 		[Description("名称")]
-		[StringLength(64)]
+		[StringLength(16)]
 		[Column("Name")]
 		public string Name { get; set; }
 
 		/// <summary>
-		/// 顺序
+		/// 序号
 		/// </summary>
-		[Description("顺序")]
-		[Column("Num")]
-		public int Num { get; set; }
+		[Description("序号")]
+		[Column("Ordinal")]
+		public int Ordinal { get; set; }
 
 		/// <summary>
 		/// 父菜单编号
 		/// </summary>
 		[Description("父菜单编号")]
-		[StringLength(64)]
+		[StringLength(16)]
 		[Column("PCode")]
 		public string PCode { get; set; }
 

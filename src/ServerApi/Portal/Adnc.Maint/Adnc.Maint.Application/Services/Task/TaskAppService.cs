@@ -1,9 +1,9 @@
-﻿using AutoMapper;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Net;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using AutoMapper;
 using Adnc.Maint.Application.Dtos;
 using Adnc.Infr.Common.Extensions;
 using Adnc.Infr.Common.Helper;
@@ -40,7 +40,7 @@ namespace  Adnc.Maint.Application.Services
             List<TaskDto> result = new List<TaskDto>();
 
             Expression<Func<SysTask, bool>> whereCondition = x => true;
-            if (!string.IsNullOrWhiteSpace(searchDto.Name))
+            if (searchDto.Name.IsNotNullOrWhiteSpace())
             {
                 whereCondition = whereCondition.And(x => x.Name.Contains(searchDto.Name));
             }
@@ -52,20 +52,16 @@ namespace  Adnc.Maint.Application.Services
 
         public async Task Save(TaskSaveInputDto saveDto)
         {
-            if (string.IsNullOrWhiteSpace(saveDto.Name))
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.BadRequest,"请输入任务名称"));
-            }
             //add
             if (saveDto.ID == 0)
             {
                 var exist = await _taskRepository.ExistAsync(c => c.Name == saveDto.Name);
                 if (exist)
-                    throw new BusinessException(new ErrorModel(ErrorCode.BadRequest,"任务名称已经存在"));
+                    throw new BusinessException(new ErrorModel(HttpStatusCode.BadRequest,"任务名称已经存在"));
 
                 var enity = _mapper.Map<SysTask>(saveDto);
                 //enity.ID = new Snowflake(1, 1).NextId();
-                enity.ID = IdGeneraterHelper.GetNextId(IdGeneraterKey.Task);
+                enity.ID = IdGenerater.GetNextId();
 
                 await _taskRepository.InsertAsync(enity);
             }
@@ -74,7 +70,7 @@ namespace  Adnc.Maint.Application.Services
             {
                 var exist = await _taskRepository.ExistAsync(c => c.Name == saveDto.Name && c.ID != saveDto.ID);
                 if (exist)
-                    throw new BusinessException(new ErrorModel(ErrorCode.BadRequest,"任务名称已经存在"));
+                    throw new BusinessException(new ErrorModel(HttpStatusCode.BadRequest,"任务名称已经存在"));
 
                 var enity = _mapper.Map<SysTask>(saveDto);
 

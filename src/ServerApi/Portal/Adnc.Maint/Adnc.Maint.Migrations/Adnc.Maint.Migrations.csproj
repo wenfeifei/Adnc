@@ -2,6 +2,13 @@
 
   <PropertyGroup>
 	  <TargetFramework>netcoreapp3.1</TargetFramework>
+	  <Version>0.7.0</Version>
+	  <Authors>Alpha.Yu</Authors>
+	  <Product>Adnc</Product>
+	  <RepositoryUrl>https://github.com/AlphaYu</RepositoryUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <PackageProjectUrl>https://www.aspdotnetcore.net</PackageProjectUrl>
+	  <Copyright>Alpha</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -9,7 +16,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Migrations\20210208052540_2021020801.cs" />
+    <Compile Remove="Migrations\20210208052540_2021020801.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Adnc.Infr.EfCore\22.Adnc.Infr.EfCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

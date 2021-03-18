@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <div class="block">
-      <el-button type="success" size="mini" icon="el-icon-plus" @click.native="add">{{ $t('button.add') }}</el-button>
+      <el-button v-permission="['/menu/add']" type="success" size="mini" icon="el-icon-plus" @click.native="add">{{ $t('button.add') }}</el-button>
     </div>
     <el-table
       :data="data"
@@ -21,13 +21,11 @@
           <span>{{ scope.row.code }}</span>
         </template>
       </el-table-column>
-      <!--
       <el-table-column label="图标">
         <template slot-scope="scope">
           <svg-icon :icon-class="scope.row.icon" />
         </template>
       </el-table-column>
-      -->
       <el-table-column label="组件">
         <template slot-scope="scope">
           <span>{{ scope.row.component }}</span>
@@ -45,17 +43,17 @@
       </el-table-column>
       <el-table-column label="是否启用">
         <template slot-scope="scope">
-          <span>{{ scope.row.statusName }}</span>
+          <span>{{ scope.row.status==1?'启用':'禁用' }}</span>
         </template>
       </el-table-column>
       <el-table-column label="是否隐藏">
         <template slot-scope="scope">
-          <span>{{ scope.row.hidden }}</span>
+          <span>{{ scope.row.hidden?'是':'否' }}</span>
         </template>
       </el-table-column>
       <el-table-column label="顺序">
         <template slot-scope="scope">
-          <span>{{ scope.row.num }}</span>
+          <span>{{ scope.row.ordinal }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="200">
@@ -79,7 +77,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="请求地址" prop="url">
+            <el-form-item label="资源地址" prop="url">
               <el-input v-model="form.url" minlength="1" />
             </el-form-item>
           </el-col>
@@ -106,11 +104,6 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="组件" prop="num">
-              <el-input v-model="form.component" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
             <el-form-item label="是否隐藏">
               <el-radio-group v-model="form.hidden">
                 <el-radio :label="true">是</el-radio>
@@ -119,36 +112,42 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="图标">
-              <el-input v-model="form.icon" />
+            <el-form-item label="排序" prop="ordinal">
+              <el-input v-model="form.ordinal" type="number" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="排序" prop="num">
-              <el-input v-model="form.num" type="number" />
+            <el-form-item label="父节点">
+              <treeselect v-model="form.pCode" :options="treeData" placeholder="请选择父节点/顶级节点目录无需选择" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="父菜单">
-              <el-input
-                v-model="form.pname"
-                placeholder="请选择父菜单"
-                readonly="readonly"
-                @click.native="showTree = !showTree"
-              />
-              <el-tree
-                v-if="showTree"
-                empty-text="暂无数据"
-                :expand-on-click-node="false"
-                :data="data"
-                :props="defaultProps"
-                class="input-tree"
-                @node-click="handleNodeClick"
-              />
-
+          <el-col v-if="form.isMenu" :span="12">
+            <el-form-item label="组件" prop="component">
+              <el-input v-model="form.component" @focus="componentTips" />
             </el-form-item>
           </el-col>
-
+          <el-col v-if="form.isMenu" :span="12">
+            <el-form-item label="图标" prop="icon">
+              <el-popover
+                placement="bottom-start"
+                width="460"
+                trigger="click"
+                @show="$refs['iconSelect'].reset()"
+              >
+                <IconSelect ref="iconSelect" @selected="selected" />
+                <el-input slot="reference" v-model="form.icon" placeholder="点击选择图标" readonly>
+                  <svg-icon
+                    v-if="form.icon"
+                    slot="prefix"
+                    :icon-class="form.icon"
+                    class="el-input__icon"
+                    style="height: 32px;width: 16px;"
+                  />
+                  <i v-else slot="prefix" class="el-icon-search el-input__icon" />
+                </el-input>
+              </el-popover>
+            </el-form-item>
+          </el-col>
         </el-row>
         <el-form-item>
           <el-button type="primary" @click="save">{{ $t('button.submit') }}</el-button>

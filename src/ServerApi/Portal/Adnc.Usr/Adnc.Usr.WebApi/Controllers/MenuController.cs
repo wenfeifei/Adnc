@@ -3,24 +3,26 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Http;
 using Adnc.Usr.Application.Services;
 using Adnc.Usr.Application.Dtos;
 using Adnc.Infr.Common;
+using Adnc.WebApi.Shared;
 
 namespace Adnc.Usr.WebApi.Controllers
 {
     /// <summary>
-    /// 菜单
+    /// 菜单管理
     /// </summary>
     [Route("usr/menus")]
     [ApiController]
-    public class MenuController : ControllerBase
+    public class MenuController : AdncControllerBase
     {
         private readonly IMenuAppService _menuService;
         private readonly UserContext _userContext;
 
         public MenuController(IMenuAppService menuService
-            ,UserContext userContext)
+            , UserContext userContext)
         {
             _menuService = menuService;
             _userContext = userContext;
@@ -31,21 +33,22 @@ namespace Adnc.Usr.WebApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet()]
-        [Permission("menu")]
-        public async Task<List<MenuNodeDto>> GetMenus()
+        [Permission("menuList")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<MenuNodeDto>>> GetlistAsync()
         {
-            return await _menuService.Getlist();
+            return Result(await _menuService.GetlistAsync());
         }
 
         /// <summary>
         /// 获取侧边栏路由菜单
         /// </summary>
         /// <returns></returns>
-        //[AllowAnonymous]
         [HttpGet("routers")]
-        public async Task<List<RouterMenuDto>> GetMenusForRouter()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<MenuRouterDto>>> GetMenusForRouterAsync()
         {
-            return await _menuService.GetMenusForRouter(_userContext.RoleIds);
+            return Result(await _menuService.GetMenusForRouterAsync(_userContext.RoleIds));
         }
 
         /// <summary>
@@ -53,34 +56,51 @@ namespace Adnc.Usr.WebApi.Controllers
         /// </summary>
         /// <param name="roleId">角色ID</param>
         /// <returns></returns>
-        [HttpGet("{roleid}/menutree")]
-        public async Task<dynamic> GetMenuTreeListByRoleId([FromRoute]long roleId)
+        [HttpGet("{roleId}/menutree")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<dynamic>> GetMenuTreeListByRoleIdAsync([FromRoute] long roleId)
         {
-            return await _menuService.GetMenuTreeListByRoleId(roleId);
+            return Result(await _menuService.GetMenuTreeListByRoleIdAsync(roleId));
         }
 
         /// <summary>
-        /// 保存菜单信息
+        /// 新增菜单
         /// </summary>
         /// <param name="menuDto">菜单</param>
         /// <returns></returns>
         [HttpPost]
-        [Permission("menuAdd", "menuEdit")]
-        public async Task SaveMenu([FromBody]MenuSaveInputDto menuDto)
+        [Permission("menuAdd")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public async Task<ActionResult<long>> CreateAsync([FromBody] MenuCreationDto menuDto)
         {
-            await _menuService.Save(menuDto);
+            return CreatedResult(await _menuService.CreateAsync(menuDto));
+        }
+
+        /// <summary>
+        /// 修改菜单
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <param name="input">菜单</param>
+        /// <returns></returns>
+        [HttpPut("{id}")]
+        [Permission("menuEdit")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> UpdateAsync([FromRoute] long id, [FromBody] MenuUpdationDto input)
+        {
+            return Result(await _menuService.UpdateAsync(id, input));
         }
 
         /// <summary>
         /// 删除菜单
         /// </summary>
-        /// <param name="menuId">菜单ID</param>
+        /// <param name="id">菜单ID</param>
         /// <returns></returns>
-        [HttpDelete("{menuid}")]
+        [HttpDelete("{id}")]
         [Permission("menuDelete")]
-        public async Task Delete([FromRoute]long menuId)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> DeleteAsync([FromRoute] long id)
         {
-            await _menuService.Delete(menuId);
+            return Result(await _menuService.DeleteAsync(id));
         }
     }
 }

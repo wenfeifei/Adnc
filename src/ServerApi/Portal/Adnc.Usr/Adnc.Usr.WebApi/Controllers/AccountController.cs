@@ -2,64 +2,58 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using Adnc.Usr.WebApi.Helper;
 using Adnc.Usr.Application.Dtos;
 using Adnc.Infr.Common;
 using Adnc.Usr.Application.Services;
-using Adnc.Application.Shared.Dtos;
 using Adnc.WebApi.Shared;
-using Microsoft.AspNetCore.Http;
+
 
 namespace Adnc.Usr.WebApi.Controllers
 {
     /// <summary>
-    /// 验证/授权/注销
+    /// 认证/修改密码/注销
     /// </summary>
     [Route("usr/session")]
     [ApiController]
-    public class AccountController : ControllerBase
+    public class AccountController : AdncControllerBase
     {
         private readonly JWTConfig _jwtConfig;
         private readonly UserContext _userContext;
         private readonly IAccountAppService _accountService;
-        private readonly ILogger<AccountController> _logger;
-        private readonly IHttpContextAccessor _contextAccessor;
 
         public AccountController(IOptionsSnapshot<JWTConfig> jwtConfig
             , IAccountAppService accountService
-            , ILogger<AccountController> logger
-            ,UserContext userContext
-            , IHttpContextAccessor contextAccessor)
+            , UserContext userContext)
         {
             _jwtConfig = jwtConfig.Value;
             _accountService = accountService;
-            _logger = logger;
             _userContext = userContext;
-            _contextAccessor = contextAccessor;
         }
 
         /// <summary>
         /// 登录/验证
         /// </summary>
-        /// <param name="userDto"><see cref="UserValidateInputDto"/></param>
+        /// <param name="input"><see cref="UserLoginDto"/></param>
         /// <returns></returns>
         [AllowAnonymous]
         [HttpPost()]
-        public async Task<UserTokenInfoDto> Login([FromBody]UserValidateInputDto userDto)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public async Task<ActionResult<UserTokenInfoDto>> LoginAsync([FromBody] UserLoginDto input)
         {
-            var ipAddress = _contextAccessor.HttpContext.Connection.RemoteIpAddress.MapToIPv4().ToString();
-            var device = _contextAccessor.HttpContext.Request.Headers["device"].ToString();
-            if (string.IsNullOrWhiteSpace(device))
-                device = "web";
+            var result = await _accountService.LoginAsync(input);
 
-            var userValidateDto = await _accountService.Login(userDto, new CurrenUserInfoDto { RemoteIpAddress = ipAddress, Device = device });
+            if (result.IsSuccess)
+                return Created($"/usr/session"
+                        ,
+                        new UserTokenInfoDto
+                        {
+                            Token = JwtTokenHelper.CreateAccessToken(_jwtConfig, result.Content),
+                            RefreshToken = JwtTokenHelper.CreateRefreshToken(_jwtConfig, result.Content)
+                        });
 
-            return new UserTokenInfoDto
-            {
-                Token = JwtTokenHelper.CreateAccessToken(_jwtConfig, userValidateDto),
-                RefreshToken = JwtTokenHelper.CreateRefreshToken(_jwtConfig, userValidateDto)
-            };
+            return Problem(result.ProblemDetails);
         }
 
         /// <summary>
@@ -67,9 +61,12 @@ namespace Adnc.Usr.WebApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet()]
-        public async Task<UserInfoDto> GetCurrentUserInfo()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<UserInfoDto>> GetCurrentUserInfoAsync()
         {
-            return await _accountService.GetUserInfo(_userContext.ID);
+            var userId = _userContext.Id;
+            var result = await _accountService.GetUserInfoAsync(_userContext.Id);
+            return Result(result);
         }
 
         /// <summary>
@@ -77,44 +74,46 @@ namespace Adnc.Usr.WebApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpDelete()]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public IActionResult Logout()
         {
+            return NoContent();
             //这个方法可以解析Token信息
             //var Token = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
-            return new OkResult();
         }
 
         /// <summary>
         /// 刷新Token
         /// </summary>
-        /// <param name="tokenInfo"><see cref="RefreshTokenInputDto"/></param>
+        /// <param name="input"><see cref="UserRefreshTokenDto"/></param>
         /// <returns></returns>
         [AllowAnonymous]
         [HttpPut()]
-        public async Task<UserTokenInfoDto> RefreshAccessToken([FromBody] RefreshTokenInputDto tokenInfo)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<UserTokenInfoDto>> RefreshAccessTokenAsync([FromBody] UserRefreshTokenDto input)
         {
-            var userValidateDto = await _accountService.GetUserValidateInfo(tokenInfo);
+            var result = await _accountService.GetUserValidateInfoAsync(input.Account);
 
-            return new UserTokenInfoDto
-            {
-                Token = JwtTokenHelper.CreateAccessToken(_jwtConfig, userValidateDto, tokenInfo.RefreshToken),
-                RefreshToken = tokenInfo.RefreshToken
-            };
+            if (result.IsSuccess)
+                return Ok(new UserTokenInfoDto
+                {
+                    Token = JwtTokenHelper.CreateAccessToken(_jwtConfig, result.Content, input.RefreshToken),
+                    RefreshToken = input.RefreshToken
+                });
+
+            return Problem(result.ProblemDetails);
         }
 
         /// <summary>
         /// 修改登录用户密码
         /// </summary>
-        /// <param name="inputDto"><see cref="UserChangePwdInputDto"/></param>
+        /// <param name="input"><see cref="UserChangePwdDto"/></param>
         /// <returns></returns>
         [HttpPut("password")]
-        public async Task<SimpleDto<bool>> ChangePassword([FromBody] UserChangePwdInputDto inputDto)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<ActionResult> ChangePassword([FromBody] UserChangePwdDto input)
         {
-            await _accountService.UpdatePassword(inputDto, new CurrenUserInfoDto { ID = _userContext.ID, Account = _userContext.Account });
-            return new SimpleDto<bool>
-            {
-                Result = true
-            };
+            return Result(await _accountService.UpdatePasswordAsync(_userContext.Id, input));
         }
     }
 }

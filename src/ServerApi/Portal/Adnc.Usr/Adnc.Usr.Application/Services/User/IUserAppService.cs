@@ -1,32 +1,36 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Adnc.Usr.Application.Dtos;
 using Adnc.Application.Shared.Interceptors;
 using Adnc.Application.Shared.Services;
 using Adnc.Application.Shared.Dtos;
+using Adnc.Infr.EasyCaching.Interceptor.Castle;
 
 namespace Adnc.Usr.Application.Services
 {
     /// <summary>
-    /// users 只缓存30秒，其他写操作无需修改缓存。
+    /// 用户管理
     /// </summary>
     public interface IUserAppService : IAppService
     {
-        Task<PageModelDto<UserDto>> GetPaged(UserSearchDto searchModel);
+        Task<AppSrvResult<PageModelDto<UserDto>>> GetPagedAsync(UserSearchPagedDto search);
 
-        [OpsLog(LogName = "新增/修改用户")]
-        Task Save(UserSaveInputDto saveDto);
+        [OpsLog(LogName = "新增用户")]
+        Task<AppSrvResult<long>> CreateAsync(UserCreationDto input);
+
+        [OpsLog(LogName = "修改用户")]
+        Task<AppSrvResult> UpdateAsync(long id, UserUpdationDto input);
 
         [OpsLog(LogName = "删除用户")]
-        Task Delete(long Id);
+        Task<AppSrvResult> DeleteAsync(long id);
 
         [OpsLog(LogName = "设置用户角色")]
-        Task SetRole(RoleSetInputDto setDto);
+        [EasyCachingEvict(CacheKeys = new[] { EasyCachingConsts.MenuRelationCacheKey, EasyCachingConsts.MenuCodesCacheKey })]
+        Task<AppSrvResult> SetRoleAsync(long id,UserSetRoleDto input);
 
         [OpsLog(LogName = "修改用户状态")]
-        Task ChangeStatus(long Id);
+        Task<AppSrvResult> ChangeStatusAsync(long id, int status);
 
         [OpsLog(LogName = "批量修改用户状态")]
-        Task ChangeStatus(UserChangeStatusInputDto changeDto);
+        Task<AppSrvResult> ChangeStatusAsync(UserChangeStatusDto input);
     }
 }

@@ -46,20 +46,22 @@ export default {
         version: '',
         deptName: '',
         pName: '',
-        num: 1
+        ordinal: 1
       },
       rules: {
         tips: [
-          { required: true, message: '请输入角色编码', trigger: 'blur' },
-          { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
+          { required: true, message: '请输入角色描述', trigger: 'blur' },
+          { min: 2, max: 64, message: '长度在 2 到 64 个字符', trigger: 'blur' }
         ],
         name: [
           { required: true, message: '请输入角色名称', trigger: 'blur' },
-          { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+          { min: 2, max: 32, message: '长度在 2 到 32 个字符', trigger: 'blur' }
         ]
       },
       listQuery: {
-        roleName: ''
+        pageIndex: 1,
+        pageSize: 10,
+        roleName: undefined
       },
       total: 0,
       list: null,
@@ -134,7 +136,7 @@ export default {
         version: '',
         deptName: '',
         pName: '',
-        num: 1
+        ordinal: 1
       }
     },
     add() {
@@ -148,7 +150,7 @@ export default {
         if (valid) {
           save({
             id: this.form.id,
-            num: parseInt(this.form.num),
+            ordinal: parseInt(this.form.ordinal),
             // deptid: this.form.deptid,
             // pid: this.form.pid,
             name: this.form.name,
@@ -203,10 +205,10 @@ export default {
               type: 'success'
             })
             this.fetchData()
-          }).catch( err=> {
+          }).catch(err => {
             this.$notify.error({
               title: '错误',
-              message:err,
+              message: err
             })
           })
         }).catch(() => {

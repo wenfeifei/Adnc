@@ -9,9 +9,15 @@ export function getList(params) {
 }
 
 export function saveUser(params) {
+  let methodName = 'post'
+  let url = '/usr/users'
+  if (params.id > 0) {
+    methodName = 'put'
+    url = url + '/' + params.id
+  }
   return request({
-    url: '/usr/users',
-    method: 'post',
+    url: url,
+    method: methodName,
     data: params
   })
 }

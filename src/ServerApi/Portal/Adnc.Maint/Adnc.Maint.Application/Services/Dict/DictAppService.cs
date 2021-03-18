@@ -1,134 +1,154 @@
 ﻿using System;
+using System.Net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using EasyCaching.Core;
 using Adnc.Maint.Application.Dtos;
 using Adnc.Infr.Common.Extensions;
 using Adnc.Infr.Common.Helper;
-using Adnc.Maint.Core.CoreServices;
+using Adnc.Maint.Core.Services;
 using Adnc.Maint.Core.Entities;
 using Adnc.Core.Shared.IRepositories;
 using Adnc.Application.Shared.Services;
-using Adnc.Application.Shared;
 
-namespace  Adnc.Maint.Application.Services
+namespace Adnc.Maint.Application.Services
 {
     public class DictAppService : AppService, IDictAppService
     {
         private readonly IMapper _mapper;
         private readonly IEfRepository<SysDict> _dictRepository;
-        private readonly IMaintManagerService _maintManagerService;
+        private readonly MaintManager _maintManager;
         private readonly IHybridCachingProvider _cache;
 
         public DictAppService(IMapper mapper
             , IEfRepository<SysDict> dictRepository
-            , IMaintManagerService maintManagerService
+            , MaintManager maintManager
             , IHybridProviderFactory hybridProviderFactory)
         {
             _mapper = mapper;
             _dictRepository = dictRepository;
-            _maintManagerService = maintManagerService;
+            _maintManager = maintManager;
             _cache = hybridProviderFactory.GetHybridCachingProvider(EasyCachingConsts.HybridCaching);
         }
 
-        public async Task Delete(long Id)
+        public async Task<AppSrvResult> DeleteAsync(long id)
         {
-            await _dictRepository.UpdateRangeAsync(d => (d.ID == Id) || (d.Pid == Id), d => new SysDict { IsDeleted = true });
+            await _dictRepository.DeleteRangeAsync(d => (d.Id == id) || (d.Pid == id));
+            return AppSrvResult();
         }
 
-        public async Task<List<DictDto>> GetList(DictSearchDto searchDto)
+        public async Task<AppSrvResult<List<DictDto>>> GetListAsync(DictSearchDto search)
         {
             var result = new List<DictDto>();
 
             Expression<Func<DictDto, bool>> whereCondition = x => true;
-            if (!string.IsNullOrWhiteSpace(searchDto.Name))
+            if (search.Name.IsNotNullOrWhiteSpace())
             {
-                whereCondition = whereCondition.And(x => x.Name.Contains(searchDto.Name));
+                whereCondition = whereCondition.And(x => x.Name.Contains(search.Name));
             }
 
-            var dicts = (await this.GetAll()).OrderBy(d => d.Num).ToList();
+            var dicts = (await this.GetAllFromCacheAsync()).Where(whereCondition.Compile()).OrderBy(d => d.Ordinal).ToList();
             if (dicts.Any())
             {
-                result = dicts.Where(d => d.Pid == 0).OrderBy(d => d.Num).ToList();
+                result = dicts.Where(d => d.Pid == 0).OrderBy(d => d.Ordinal).ToList();
                 foreach (var item in result)
                 {
-                    var subDict = dicts.Where(d => d.Pid == item.ID).OrderBy(d => d.Num).Select(d => $"{d.Num}:{d.Name}");
-                    item.Detail = string.Join(";", subDict);
+                    var subDicts = dicts.Where(x => x.Pid == item.Id).OrderBy(x => x.Ordinal).ToList();
+                    item.Children = subDicts;
                 }
 
             }
             return result;
         }
 
-        public async Task Save(DictSaveInputDto saveDto)
+        public async Task<AppSrvResult<long>> CreateAsync(DictCreationDto input)
         {
-            if (string.IsNullOrWhiteSpace(saveDto.DictName))
-            {
-                throw new BusinessException(new ErrorModel(ErrorCode.BadRequest,"请输入字典名称"));
-            }
+            var exists = (await GetAllFromCacheAsync()).Exists(x => x.Name.EqualsIgnoreCase(input.Name));
+            if (exists)
+                return Problem(HttpStatusCode.BadRequest, "字典名字已经存在");
 
-            //add
-            if (saveDto.ID == 0)
+            var dists = new List<SysDict>();
+            long id = IdGenerater.GetNextId();
+            //var subDicts = GetSubDicts(id, input.DictValues);
+            var dict = new SysDict { Id = id, Name = input.Name, Value = input.Value, Ordinal = input.Ordinal, Pid = 0 };
+
+            dists.Add(dict);
+            input.Children?.ForEach(x =>
             {
-                //long Id = new Snowflake(1, 1).NextId();
-                long Id = IdGeneraterHelper.GetNextId(IdGeneraterKey.DICT);
-                var subDicts = GetSubDicts(Id, saveDto.DictValues);
-                await _dictRepository.InsertRangeAsync(subDicts.Append(new SysDict { ID = Id, Pid = 0, Name = saveDto.DictName, Tips = saveDto.Tips,Num="0" }));
-            }
-            //update
-            else
-            {
-                var dict = new SysDict { Name = saveDto.DictName, Tips = saveDto.Tips, ID = saveDto.ID, Pid = 0 };
-                var subDicts = GetSubDicts(saveDto.ID, saveDto.DictValues);
-                await _maintManagerService.UpdateDicts(dict, subDicts);
-            }
+                dists.Add(new SysDict
+                {
+                    Id = IdGenerater.GetNextId()
+                    ,
+                    Pid = id
+                    ,
+                    Name = x.Name
+                    ,
+                    Value = x.Value
+                    ,
+                    Ordinal = x.Ordinal
+                });
+            });
+
+            await _dictRepository.InsertRangeAsync(dists);
+
+            return id;
         }
 
-        public async Task<DictDto> Get(long id)
+        public async Task<AppSrvResult> UpdateAsync(long id, DictUpdationDto input)
         {
-            return (await this.GetAll()).Where(x => x.ID == id).FirstOrDefault();
+            var exists = (await GetAllFromCacheAsync()).Exists(x => x.Name.EqualsIgnoreCase(input.Name) && x.Id != id);
+            if (exists)
+                return Problem(HttpStatusCode.BadRequest, "字典名字已经存在");
+
+            var dict = new SysDict { Name = input.Name, Value = input.Value, Id = id, Pid = 0, Ordinal = input.Ordinal };
+
+            var subDicts = new List<SysDict>();
+            input.Children?.ForEach(x =>
+            {
+                subDicts.Add(new SysDict
+                {
+                    Id = IdGenerater.GetNextId()
+                    ,
+                    Pid = id
+                    ,
+                    Name = x.Name
+                    ,
+                    Value = x.Value
+                    ,
+                    Ordinal = x.Ordinal
+                });
+            });
+
+            // 这里需要事务处理
+            await _maintManager.UpdateDictsAsync(dict, subDicts);
+
+            return AppSrvResult();
         }
 
-        public async Task<DictDto> GetInculdeSubs(long id)
+        public async Task<AppSrvResult<DictDto>> GetAsync(long id)
         {
-            return (await this.GetAll()).Where(x => x.ID == id || x.Pid == id).OrderBy(x => x.ID).ThenBy(x => x.Num).FirstOrDefault();
+            var dictDto = (await this.GetAllFromCacheAsync()).Where(x => x.Id == id).FirstOrDefault();
+
+            if (dictDto == null)
+                return Problem(HttpStatusCode.NotFound, "没有找到");
+
+            dictDto.Children = (await this.GetAllFromCacheAsync()).Where(x => x.Pid == id).ToList();
+
+            return dictDto;
         }
 
-        private async Task<List<DictDto>> GetAll()
+        private async Task<List<DictDto>> GetAllFromCacheAsync()
         {
             var cahceValue = await _cache.GetAsync(EasyCachingConsts.DictListCacheKey, async () =>
             {
-                var allDicts = await _dictRepository.GetAll().ToListAsync();
+                var allDicts = await _dictRepository.GetAll(writeDb: true).OrderBy(x => x.Ordinal).ToListAsync();
                 return _mapper.Map<List<DictDto>>(allDicts);
             }, TimeSpan.FromSeconds(EasyCachingConsts.OneYear));
 
             return cahceValue.Value;
-        }
-
-        private List<SysDict> GetSubDicts(long pid, string dictValues)
-        {
-            List<SysDict> subDicts = new List<SysDict>();
-            if (!string.IsNullOrWhiteSpace(dictValues))
-            {
-                //var snowflake = new Snowflake(1, 1);
-                var values = dictValues.Split(";", StringSplitOptions.RemoveEmptyEntries);
-                subDicts = values.Select((s,Index) => new SysDict
-                {
-                    //ID = snowflake.NextId()
-                    ID = IdGeneraterHelper.GetNextId(IdGeneraterKey.DICT, Index)
-                    ,
-                    Pid = pid
-                    ,
-                    Name = s.Split(":", StringSplitOptions.RemoveEmptyEntries)[1]
-                    ,
-                    Num = s.Split(":", StringSplitOptions.RemoveEmptyEntries)[0]
-                }).ToList();
-            }
-            return subDicts;
         }
     }
 }

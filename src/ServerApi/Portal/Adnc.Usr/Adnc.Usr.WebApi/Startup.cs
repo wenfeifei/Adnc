@@ -7,16 +7,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Logging;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Autofac;
 using AutoMapper;
 using Adnc.Infr.Common;
-using Adnc.Infr.Consul.Registration;
 using Adnc.Usr.Application;
 using Adnc.Usr.WebApi.Helper;
 using Adnc.WebApi.Shared;
 using Adnc.WebApi.Shared.Middleware;
+using Adnc.Infr.Consul;
 
 namespace Adnc.Usr.WebApi
 {
@@ -46,14 +47,15 @@ namespace Adnc.Usr.WebApi
             _srvRegistration.Configure();
             _srvRegistration.AddControllers();
             _srvRegistration.AddJWTAuthentication();
-            _srvRegistration.AddAuthorization();
+            _srvRegistration.AddAuthorization<PermissionHandlerLocal>();
             _srvRegistration.AddCors();
             _srvRegistration.AddHealthChecks();
-            _srvRegistration.AddMqHostedServices();
             _srvRegistration.AddEfCoreContext();
             _srvRegistration.AddMongoContext();
             _srvRegistration.AddCaching();
             _srvRegistration.AddSwaggerGen();
+
+            services.AddConsulServices(_srvRegistration.GetConsulConfig());
         }
 
         public void ConfigureContainer(ContainerBuilder builder)
@@ -79,12 +81,12 @@ namespace Adnc.Usr.WebApi
                 //开启验证异常显示
                 //PII is hidden 异常处理
                 IdentityModelEventSource.ShowPII = true;
-                app.UseDeveloperExceptionPage();
             }
+            app.UseCustomExceptionHandler();
             app.UseRealIp(x =>
             {
                 //new string[] { "X-Real-IP", "X-Forwarded-For" }
-                x.HeaderKeys = new string[] { "X-Real-IP"};
+                x.HeaderKeys = new string[] { "X-Forwarded-For", "X-Real-IP" };
             });
             app.UseCors(_serviceInfo.CorsPolicy);
             app.UseSwagger(c =>
@@ -100,7 +102,6 @@ namespace Adnc.Usr.WebApi
                 c.SwaggerEndpoint($"/{_serviceInfo.ShortName}/swagger/{_serviceInfo.Version}/swagger.json", $"{_serviceInfo.FullName}-{_serviceInfo.Version}");
                 c.RoutePrefix = $"{_serviceInfo.ShortName}";
             });
-            //app.UseErrorHandling();
             app.UseHealthChecks($"/{_srvRegistration.GetConsulConfig().HealthCheckUrl}", new HealthCheckOptions()
             {
                 Predicate = _ => true,
@@ -109,8 +110,8 @@ namespace Adnc.Usr.WebApi
             });
             app.UseRouting();
             app.UseAuthentication();
+            app.UseSSOAuthentication(_srvRegistration.IsSSOAuthentication);
             app.UseAuthorization();
-            //app.UseCustomAuthentication();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers().RequireAuthorization();
@@ -118,7 +119,7 @@ namespace Adnc.Usr.WebApi
             if (env.IsProduction() || env.IsStaging())
             {
                 //注册本服务到consul
-                app.RegisterToConsul(_srvRegistration.GetConsulConfig());
+                app.RegisterToConsul();
             }
         }
     }

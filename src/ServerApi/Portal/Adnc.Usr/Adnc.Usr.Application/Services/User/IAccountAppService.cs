@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Adnc.Usr.Application.Dtos;
 using Adnc.Application.Shared.Interceptors;
 using Adnc.Application.Shared.Services;
@@ -10,13 +7,13 @@ namespace Adnc.Usr.Application.Services
 {
     public interface IAccountAppService : IAppService
     {
-        Task<UserValidateDto> Login(UserValidateInputDto userDto, CurrenUserInfoDto currentUser);
+        Task<AppSrvResult<UserValidateDto>> LoginAsync(UserLoginDto input);
 
-        Task<UserInfoDto> GetUserInfo(long id);
+        Task<AppSrvResult<UserInfoDto>> GetUserInfoAsync(long userId);
 
         [OpsLog(LogName = "修改密码")]
-        Task<UserValidateDto> UpdatePassword(UserChangePwdInputDto passwordDto, CurrenUserInfoDto currentUser);
+        Task<AppSrvResult> UpdatePasswordAsync(long id, UserChangePwdDto input);
 
-        Task<UserValidateDto> GetUserValidateInfo(RefreshTokenInputDto tokenInfo);
+        Task<AppSrvResult<UserValidateDto>> GetUserValidateInfoAsync(string account);
     }
 }

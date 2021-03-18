@@ -1,10 +1,9 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using Adnc.Infr.Common;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+﻿using System;
 using System.Text;
-using System;
 using System.Linq;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
 using Adnc.Usr.Application.Dtos;
 using Adnc.WebApi.Shared;
 
@@ -48,8 +47,8 @@ namespace Adnc.Usr.WebApi.Helper
                 new Claim(ClaimTypes.NameIdentifier, user.Account),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Sub, user.ID.ToString()),
-                new Claim(ClaimTypes.Role, user.RoleId??"0")
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(ClaimTypes.Role, user.RoleIds??"0")
             };
             return CreateToken(jwtConfig, claims, TokenType.AccessToken);
         }

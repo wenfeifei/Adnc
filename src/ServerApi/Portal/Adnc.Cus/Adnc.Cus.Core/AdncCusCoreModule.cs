@@ -1,14 +1,19 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
-using Adnc.Cus.Core.Entities;
+using Adnc.Infr.EventBus;
 using Adnc.Core.Shared;
 using Adnc.Core.Shared.Entities;
 using Adnc.Core.Shared.Interceptors;
+using Adnc.Cus.Core.Entities;
 
 namespace Adnc.Cus.Core
 {
     public class AdncCusCoreModule : Module
     {
+        /// <summary>
+        /// Autofac注册
+        /// </summary>
+        /// <param name="builder"></param>
         protected override void Load(ContainerBuilder builder)
         {
             //注册EntityInfo
@@ -19,14 +24,36 @@ namespace Adnc.Cus.Core
             //注册事务拦截器
             builder.RegisterType<UowInterceptor>()
                    .InstancePerLifetimeScope();
+            builder.RegisterType<UowAsyncInterceptor>()
+                   .InstancePerLifetimeScope();
 
             //注册Core服务
             builder.RegisterAssemblyTypes(this.ThisAssembly)
                 .Where(t => t.IsAssignableTo<ICoreService>())
-                .AsImplementedInterfaces()
+                .AsSelf()
                 .InstancePerLifetimeScope()
-                .EnableInterfaceInterceptors()
+                .EnableClassInterceptors()
                 .InterceptedBy(typeof(UowInterceptor));
+
+            //注册事件发布者
+            builder.RegisterType<CapPublisher>()
+                   .As<IEventPublisher>()
+                   .SingleInstance();
+
+            //注册eventbus订阅服务
+            //builder.RegisterAssemblyTypes(this.ThisAssembly)
+            //    .Where(t => t.IsAssignableTo<ICapSubscribe>())
+            //    .AsImplementedInterfaces()
+            //    .InstancePerLifetimeScope();
+        }
+
+        /// <summary>
+        /// Autofac注册,该方法供UnitTest工程使用
+        /// </summary>
+        /// <param name="builder"></param>
+        public static void Register(ContainerBuilder builder)
+        {
+            new AdncCusCoreModule().Load(builder);
         }
     }
 }

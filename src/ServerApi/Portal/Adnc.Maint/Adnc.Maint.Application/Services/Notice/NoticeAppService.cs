@@ -1,16 +1,17 @@
-﻿using AutoMapper;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Adnc.Application;
+using AutoMapper;
+using Adnc.Infr.Common.Extensions;
 using Adnc.Maint.Application.Dtos;
 using Adnc.Maint.Core.Entities;
 using Adnc.Core.Shared.IRepositories;
+using Adnc.Application.Shared.Services;
+using System.Linq.Expressions;
+using System;
 
 namespace  Adnc.Maint.Application.Services
 {
-    public class NoticeAppService : INoticeAppService
+    public class NoticeAppService : AppService, INoticeAppService
     {
         private readonly IMapper _mapper;
         private readonly IEfRepository<SysNotice> _noticeRepository;
@@ -21,17 +22,15 @@ namespace  Adnc.Maint.Application.Services
             _noticeRepository = noticeRepository;
         }
 
-        public async Task<List<NoticeDto>> GetList(string title)
+        public async Task<AppSrvResult<List<NoticeDto>>> GetListAsync(NoticeSearchDto search)
         {
-            List<SysNotice> notices = null;
-            if (string.IsNullOrWhiteSpace(title))
+            Expression<Func<SysNotice, bool>> whereCondition = x => true;
+            if (search.Title.IsNotNullOrWhiteSpace())
             {
-                notices = await _noticeRepository.SelectAsync(n => n, x => true);
+                whereCondition = whereCondition.And(x => x.Title==search.Title.Trim());
             }
-            else
-            {
-                notices = await _noticeRepository.SelectAsync(n => n, x => x.Title.Contains(title));
-            }
+
+            var notices = await _noticeRepository.Where(whereCondition).ToListAsync();
 
             return _mapper.Map<List<NoticeDto>>(notices);
         }

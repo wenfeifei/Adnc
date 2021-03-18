@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Logging;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Autofac;
@@ -17,6 +18,7 @@ using Adnc.Maint.WebApi.Helper;
 using Adnc.Maint.Application;
 using Adnc.WebApi.Shared;
 using Adnc.WebApi.Shared.Middleware;
+using Adnc.Infr.Consul;
 
 namespace Adnc.Maint.WebApi
 {
@@ -48,15 +50,17 @@ namespace Adnc.Maint.WebApi
             _srvRegistration.Configure();
             _srvRegistration.AddControllers();
             _srvRegistration.AddJWTAuthentication();
-            _srvRegistration.AddAuthorization();
+            _srvRegistration.AddAuthorization<PermissionHandlerRemote>();
             _srvRegistration.AddCors();
             _srvRegistration.AddHealthChecks();
-            _srvRegistration.AddMqHostedServices();
             _srvRegistration.AddEfCoreContext();
             _srvRegistration.AddMongoContext();
             _srvRegistration.AddCaching();
             _srvRegistration.AddSwaggerGen();
-            _srvRegistration.AddAllRpcService();
+            _srvRegistration.AddAllMqServices();
+            _srvRegistration.AddAllRpcServices();
+
+            services.AddConsulServices(_srvRegistration.GetConsulConfig());
         }
 
         public void ConfigureContainer(ContainerBuilder builder)
@@ -74,17 +78,17 @@ namespace Adnc.Maint.WebApi
             defaultFilesOptions.DefaultFileNames.Add("index.html");
             app.UseDefaultFiles(defaultFilesOptions);
             app.UseStaticFiles();
+            app.UseCustomExceptionHandler();
             if (env.IsDevelopment())
             {
                 //开启验证异常显示
                 //PII is hidden 异常处理
                 IdentityModelEventSource.ShowPII = true;
-                app.UseDeveloperExceptionPage();
             }
             app.UseRealIp(x =>
             {
                 //new string[] { "X-Real-IP", "X-Forwarded-For" }
-                x.HeaderKeys = new string[] { "X-Real-IP" };
+                x.HeaderKeys = new string[] { "X-Forwarded-For", "X-Real-IP" };
             });
             app.UseCors();
             app.UseSwagger(c =>
@@ -100,7 +104,6 @@ namespace Adnc.Maint.WebApi
                 c.SwaggerEndpoint($"/{_serviceInfo.ShortName}/swagger/{_serviceInfo.Version}/swagger.json", $"{_serviceInfo.FullName}-{_serviceInfo.Version}");
                 c.RoutePrefix = $"{_serviceInfo.ShortName}";
             });
-            //app.UseErrorHandling();
             app.UseHealthChecks($"/{_srvRegistration.GetConsulConfig().HealthCheckUrl}", new HealthCheckOptions()
             {
                 Predicate = _ => true,
@@ -109,8 +112,8 @@ namespace Adnc.Maint.WebApi
             });
             app.UseRouting();
             app.UseAuthentication();
+            app.UseSSOAuthentication(_srvRegistration.IsSSOAuthentication);
             app.UseAuthorization();
-            //app.UseCustomAuthentication();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers().RequireAuthorization();
@@ -118,7 +121,7 @@ namespace Adnc.Maint.WebApi
             if (env.IsProduction() || env.IsStaging())
             {
                 //注册本服务到consul
-                app.RegisterToConsul(_srvRegistration.GetConsulConfig());
+                app.RegisterToConsul();
             }
         }
     }

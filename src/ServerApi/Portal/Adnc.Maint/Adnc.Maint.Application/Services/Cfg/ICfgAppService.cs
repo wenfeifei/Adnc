@@ -5,20 +5,24 @@ using Adnc.Application.Shared.Interceptors;
 using Adnc.Application.Shared.Services;
 using Adnc.Application.Shared.Dtos;
 
-namespace  Adnc.Maint.Application.Services
+namespace Adnc.Maint.Application.Services
 {
     public interface ICfgAppService : IAppService
     {
-        Task<PageModelDto<CfgDto>> GetPaged(CfgSearchDto searchDto);
+        Task<AppSrvResult<PageModelDto<CfgDto>>> GetPagedAsync(CfgSearchPagedDto search);
 
-        [OpsLog(LogName = "新增/修改参数")]
+        [OpsLog(LogName = "新增参数")]
         [EasyCachingEvict(CacheKey = EasyCachingConsts.CfgListCacheKey)]
-        Task Save(CfgSaveInputDto saveInputDto);
+        Task<AppSrvResult<long>> CreateAsync(CfgCreationDto input);
+
+        [OpsLog(LogName = "修改参数")]
+        [EasyCachingEvict(CacheKey = EasyCachingConsts.CfgListCacheKey)]
+        Task<AppSrvResult> UpdateAsync(long id, CfgUpdationDto input);
 
         [OpsLog(LogName = "删除参数")]
         [EasyCachingEvict(CacheKey = EasyCachingConsts.CfgListCacheKey)]
-        Task Delete(long Id);
+        Task<AppSrvResult> DeleteAsync(long id);
 
-        Task<CfgDto> Get(long Id);
+        Task<AppSrvResult<CfgDto>> GetAsync(long id);
     }
 }

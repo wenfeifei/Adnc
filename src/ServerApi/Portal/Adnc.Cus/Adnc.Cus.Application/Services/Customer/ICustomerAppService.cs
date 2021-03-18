@@ -9,9 +9,11 @@ namespace Adnc.Cus.Application.Services
     public interface ICustomerAppService : IAppService
     {
         [OpsLog(LogName = "注册")]
-        Task Register(RegisterInputDto inputDto);
+        Task<AppSrvResult<CustomerDto>> RegisterAsync(CustomerRegisterDto inputDto);
 
         [OpsLog(LogName = "充值")]
-        Task<SimpleDto<string>> Recharge(RechargeInputDto inputDto);
+        Task<AppSrvResult<SimpleDto<string>>> RechargeAsync(long id, CustomerRechargeDto inputDto);
+
+        Task<AppSrvResult<PageModelDto<CustomerDto>>> GetPagedAsync(CustomerSearchPagedDto search);
     }
 }

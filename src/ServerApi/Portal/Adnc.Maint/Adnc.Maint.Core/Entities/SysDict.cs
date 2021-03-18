@@ -1,35 +1,29 @@
-﻿using Adnc.Core.Shared.Entities;
-using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Adnc.Core.Shared.Entities;
 
 namespace Adnc.Maint.Core.Entities
 {
-	/// <summary>
-	/// 字典
-	/// </summary>
-	[Table("SysDict")]
-	[Description("字典")]
-	public class SysDict : EfAuditEntity
-	{
-		public override long ID { get; set; }
+    /// <summary>
+    /// 字典
+    /// </summary>
+    [Table("SysDict")]
+    [Description("字典")]
+    public class SysDict : EfFullAuditEntity, ISoftDelete
+    {
+        [MaxLength(16)]
+        public string Name { get; set; }
 
-		[StringLength(255)]
-		[Column("Name")]
-		public string Name { get; set; }
+        [Description("排序号")]
+        public int Ordinal { get; set; }
 
-		[StringLength(255)]
-		[Column("Num")]
-		public string Num { get; set; }
+        [Description("父节点Id")]
+        public long Pid { get; set; }
 
-		[Column("Pid")]
-		public long? Pid { get; set; }
+        [MaxLength(64)]
+        public string Value { get; set; }
 
-		[StringLength(255)]
-		[Column("Tips")]
-		public string Tips { get; set; }
-
-		public bool IsDeleted { get; set; }
-	}
+        public bool IsDeleted { get; set; }
+    }
 }

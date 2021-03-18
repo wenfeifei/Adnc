@@ -9,14 +9,22 @@ namespace Adnc.Usr.Application.Services
 {
     public interface IDeptAppService : IAppService
     {
-        Task<List<DeptNodeDto>> GetList();
+        Task<AppSrvResult<List<DeptTreeeDto>>> GetListAsync();
 
-        [OpsLog(LogName = "新增/修改部门")]
+        [OpsLog(LogName = "新增部门")]
         [EasyCachingEvict(CacheKey = EasyCachingConsts.DetpListCacheKey)]
-        Task Save(DeptSaveInputDto savetDto);
+        Task<AppSrvResult<long>> CreateAsync(DeptCreationDto input);
+
+        [OpsLog(LogName = "修改部门")]
+        [EasyCachingEvict(CacheKey = EasyCachingConsts.DetpListCacheKey)]
+        Task<AppSrvResult> UpdateAsync(long id, DeptUpdationDto input);
 
         [OpsLog(LogName = "删除部门")]
         [EasyCachingEvict(CacheKey = EasyCachingConsts.DetpListCacheKey)]
-        Task Delete(long Id);
+        Task<AppSrvResult> DeleteAsync(long Id);
+
+        Task<List<DeptDto>> GetAllFromCacheAsync();
+
+        Task<dynamic[]> GetSimpleListAsync();
     }
 }

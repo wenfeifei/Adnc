@@ -1,31 +1,61 @@
-![](https://discourse-cloud-file-uploads.s3.dualstack.us-west-2.amazonaws.com/github/original/2X/c/c0e0f8a6eae69b57a7465cdc578fc63874783f8d.png)
-## 前言
-[![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://github.com/AlphaYu/Adnc)
-[![GitHub issues](https://img.shields.io/github/issues/AlphaYu/Adnc)](https://github.com/AlphaYu/Adnc/issues)
-[![GitHub forks](https://img.shields.io/github/forks/AlphaYu/Adnc)](https://github.com/AlphaYu/Adnc/network)
-[![GitHub stars](https://img.shields.io/github/stars/AlphaYu/Adnc)](https://github.com/AlphaYu/Adnc/stargazers)
-[![GitHub license](https://img.shields.io/github/license/AlphaYu/Adnc)](https://github.com/AlphaYu/Adnc/blob/master/LICENSE)<br/>
-&ensp;&ensp;&ensp;&ensp;Adnc是一个轻量级的.Net Core微服务快速开发框架，同时也可以应用于单体架构系统的开发。框架基于JWT认证授权、集成了微服务相关配套组件，代码简洁、易上手、学习成本低、开箱即用。<br/>
-&ensp;&ensp;&ensp;&ensp;Adnc前端基于Vue、后端服务基于.Net Core 3.1搭建，也是一个前后端分离的框架。WebApi遵循RESTful风格，框架包含用户/角色/权限管理、字典/配置管理、登录/审计/异常日志管理等基础的后台模块。<br/>
-&ensp;&ensp;&ensp;&ensp;Adnc对配置中心、依赖注入、日志、缓存、模型映射、认证/授权、仓储、服务注册/发现、健康检测、性能检测、RabbitMq、EfCore、Dapper等模块进行更高一级的自动化封装，使Asp.Net Core 框架更易于应用到实际项目开发中。<br/>
-> 演示网址：<a href="http://193.112.75.77" target="_blank">http://193.112.75.77</a> <br/>
-> 账号/密码：alpha2008/alpha2008 
-##### 下一步计划
-  - 完善框架文档。
-  - 集成<a href="https://github.com/ldqk/Masuit.Tools" target="_blank">Masuit.Tools</a>丰富adnc.infr.common工具层。
-  - 集成<a href="https://github.com/quartznet/quartznet" target="_blank">Quartz.Net</a>实现框架计划调度功能。
-  - 使用DDD设计思想改造adnc.core层。
-## 如何快速跑起来
-  - [请点击链接，查看详细介绍](https://github.com/AlphaYu/Adnc/wiki/%E5%A6%82%E4%BD%95%E5%BF%AB%E9%80%9F%E8%B7%91%E8%B5%B7%E6%9D%A5)
+<div align='center'>
+<a href="https://github.com/AlphaYu/Adnc/blob/master/LICENSE">
+<img alt="GitHub license" src="https://img.shields.io/github/license/AlphaYu/Adnc"/>
+</a>
+<a href="https://github.com/AlphaYu/Adnc/stargazers">
+<img alt="GitHub stars" src="https://img.shields.io/github/stars/AlphaYu/Adnc"/>
+</a>
+<a href="https://github.com/AlphaYu/Adnc/network">
+<img alt="GitHub forks" src="https://img.shields.io/github/forks/AlphaYu/Adnc"/>
+</a>
+</div>
+
+# <div align="center">![Adnc是一个微服务开发框架 代码改变世界 开源活跃社区](https://aspdotnetcore.net/wp-content/uploads/2020/12/adnc-homepage-logo-3.webp)</div>
+&ensp;&ensp;&ensp;&ensp;<a target="_blank" title="一个轻量级的.Net Core微服务开发框架" href="https://aspdotnetcore.net">Adnc</a>是一个轻量级的<a target="_blank" href="https://github.com/dotnet/core">.Net Core</a>微服务开发框架，同时也适用于单体架构系统的开发。支持经典三层与DDD架构开发模式、集成了一系列主流稳定的微服务配套技术栈。一个前后端分离的框架，前端基于<a target="_blank" href="https://github.com/vuejs/vue">Vue</a>、后端基于<a target="_blank" href="https://github.com/dotnet/core">.Net Core 3.1</a>构建。Webapi遵循RESTful设计规范、基于JWT认证授权、基于<a target="_blank" href="https://github.com/mariadb-corporation/MaxScalehttps://github.com/mariadb-corporation/MaxScale">Maxscale</a>实现了读写分离、部署灵活、代码简洁、开箱即用、容器化微服务的最佳实践。
+
+- 用户中心：系统支撑服务，实现了用户管理、角色管理、权限管理、菜单管理、组织架构管理
+- 运维中心：系统支撑服务，实现了登录日志、审计日志、异常日志、字典管理、配置参数管理
+- 客户中心：经典三层开发模式demo
+- 订单中心：DDD开发模式demo
+- 仓储中心：DDD开发模式demo
+
+## 演示
+- <a href="http://adnc.aspdotnetcore.net" target="_blank">http://adnc.aspdotnetcore.net</a>
+
+## 问题交流
+- 780634162(QQ群)
+
+## GitHub
+- <a href="https://github.com/alphayu/adnc" target="_blank">https://github.com/alphayu/adnc</a>
+- 开源不易，如果您喜欢这个项目, 请给个星星⭐️。
+
+## 文档
+#### 如何快速跑起来
+- 详细介绍如何使用docker安装reids、mysql、rabbitmq、mongodb，以及如何在本地配置ClientApp、ServerApi。<br/>
+[请点击链接，查看详细介绍](https://github.com/AlphaYu/Adnc/wiki/%E5%A6%82%E4%BD%95%E5%BF%AB%E9%80%9F%E8%B7%91%E8%B5%B7%E6%9D%A5)
+
+#### 如何手动部署到服务器
+- 详细介绍如何使用docker安装consul集群、使用consul注册中心、安装配置Skywalking，以及相关项目dockerfile文件编写和配置等。<br/>
+[请点击链接，查看详细介绍](https://github.com/AlphaYu/Adnc/wiki/Adnc%E5%A6%82%E4%BD%95%E6%89%8B%E5%8A%A8%E9%83%A8%E7%BD%B2(docker,consul,skywalking,nginx))
+
+#### 如何实现读写分离
+- 详细介绍为什么要通过中间件实现读写分离以及EFCore基于中间件如何写代码。<br/>
+[请点击链接，查看详细介绍](https://github.com/AlphaYu/Adnc/wiki/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB)
+
+#### 如何使用EFCore仓储
+- 详细介绍EFCore仓储基础功能、工作单元、CodeFirst，提供了丰富的演示代码以及演示代码对应的Sql语句。<br/>
+[请点击链接，查看详细介绍](https://github.com/AlphaYu/Adnc/wiki/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8%E4%BB%93%E5%82%A8(%E4%B8%80)-%E5%9F%BA%E7%A1%80%E5%8A%9F%E8%83%BD)
+
 ## 目录结构
-  - clientApp 前端项目(vue)
-  - serverApi 后端项目(dotnetcore)
-  - doc 项目相关文档(数据库脚本/docker-compose.yaml文件)
+  - src
+    - clientApp 前端项目(`Vue`)
+    - serverApi 后端项目(`.NET Core 3.1`)
+  - doc 项目相关文档(sql脚本、docker脚本、docker-compose.yaml文件)
   - tools 工具软件  
-![image](http://193.112.75.77/adncimages/20201016154218.png)
-##### ClientApp
-  - ClientApp基于Vue-element-admin以及web-flash搭建，感谢两位作者。
-  - 技术栈 Vue + Vue-Router + Vuex + Axios
+  - test 测试工程
+#### ClientApp
+  - clientApp基于<a target="_blank" href="https://github.com/PanJiaChen/vue-element-admin">Vue-Element-Admin</a>以及<a target="_blank" href="https://github.com/enilu/web-flash">Web-Flash</a>搭建，感谢两位作者。
+  - 前端主要技术栈 Vue + Vue-Router + Vuex + Axios
   - 构建步骤
     ```bash 
     # Install dependencies 
@@ -35,69 +65,88 @@
     # Build for production with minification
     npm run build:prod
     ```
-- 界面<br/>
-![image](http://193.112.75.77/adncimages/20201016160306.png)
-![image](http://193.112.75.77/adncimages/20201016160347.png)
+  - 界面
+![.NET微服务开源框架-异常日志界面](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-dashboard-nlog.webp)
+![.NET微服务开源框架-角色管理界面](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-dashboard-role.webp)
 
-##### ServerApi
-  - ServerApi基于dotnetcore3.1搭建。
-  - 主要技术栈
- 
+#### ServerApi
+  - ServerApi基于`.NET CORE 3.1`搭建。
+  - 后端主要技术栈
+  
 | 名称 | 描述 |
 | ---- | -----|
-| Ocelot | 基于 dotnetcore 编写的开源Api网关  |
-| Consul | 配置中心、服务发现/注册组件|
-| Refit  | 一个声明式自动类型安全的restful服务调用组件|
-| SkyAPM.Agent.AspNetCore | skywalking .net core 探针，性能检测组件 |
-| AspNetCore.HealthChecks | 健康检测组件 |
-| Autofac | IOC容器组件 |
-| Autofac.Extras.DynamicProxy | Autfac AOP扩展 |
-| Efcore | ORM组件 |
-| Dapper | 轻量级ORM组件 |
-| Z.EntityFramework.Plus.EFCore | 高新能的EfCore组件 |
-| NLog | 日志记录组件件 |
-| AutoMapper | 模型映射组件 |
-| Swashbuckle.AspNetCore | REST APIs文档生成工具（swagger） |
-| EasyCaching | 实现一、二级缓存管理的一个开源的组件 |
-| CAP  | 实现事件总线及最终一致性（分布式事务）的一个开源的组件 |
-| RabbitMq  | 异步消息队列组件 |
+| <a target="_blank" href="https://github.com/ThreeMammals/Ocelot">Ocelot</a> | 基于 `.NET Core` 编写的开源网关  |
+| <a target="_blank" href="https://github.com/hashicorp/consul">Consul</a> | 配置中心、注册中心组件|
+| <a target="_blank" href="https://github.com/reactiveui/refit">Refit</a>  | 一个声明式自动类型安全的RESTful服务调用组件，用于同步调用其他微服务|
+| <a target="_blank" href="https://github.com/SkyAPM/SkyAPM-dotnet">SkyAPM.Agent.AspNetCore</a> | Skywalking `.NET Core`探针，性能链路监测组件 |
+| <a target="_blank" href="https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks">AspNetCore.HealthChecks</a> | 健康监测组件,搭配consul的健康监测 |
+| <a target="_blank" href="https://github.com/autofac/Autofac">Autofac</a> | IOC容器组件 |
+| <a target="_blank" href="https://github.com/autofac/Autofac">Autofac.Extras.DynamicProxy</a> | Autfac AOP扩展 |
+| <a target="_blank" href="https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql">Pomelo.EntityFrameworkCore.MySql</a> | EFCore ORM组件 |
+| <a target="_blank" href="https://github.com/StackExchange/Dapper">Dapper</a> | 轻量级ORM组件 |
+| <a target="_blank" href="https://entityframework-plus.net">Z.EntityFramework.Plus.EFCore</a> | 第三方高性能的EfCore组件 |
+| <a target="_blank" href="https://github.com/NLog/NLog">NLog</a> | 日志记录组件 |
+| <a target="_blank" href="https://github.com/AutoMapper/AutoMapper">AutoMapper</a> | 模型映射组件 |
+| <a target="_blank" href="https://github.com/domaindrivendev/Swashbuckle.AspNetCore">Swashbuckle.AspNetCore</a> | APIs文档生成工具(swagger) |
+| <a target="_blank" href="https://github.com/dotnetcore/EasyCaching">EasyCaching</a> | 实现了一、二级缓存管理的一个开源的组件 |
+| <a target="_blank" href="https://github.com/dotnetcore/CAP">CAP</a>  | 实现事件总线及最终一致性（分布式事务）的一个开源的组件 |
+| <a target="_blank" href="https://github.com/rabbitmq/rabbitmq-dotnet-client">RabbitMq</a>  | 异步消息队列组件 |
+| <a target="_blank" href="https://github.com/App-vNext/Polly">Polly</a>  | 一个 .NET 弹性和瞬态故障处理库，允许开发人员以 Fluent 和线程安全的方式来实现重试、断路、超时、隔离和回退策略 |
+| <a target="_blank" href="https://github.com/FluentValidation">FluentValidation</a>  | 一个 .NET 验证框架，支持链式操作，易于理解，功能完善，组件内提供十几种常用验证器，可扩展性好，支持自定义验证器，支持本地化多语言 |
+| <a target="_blank" href="https://github.com/mariadb-corporation/MaxScale">Maxscale</a>  | Mariadb开发的一款成熟、高性能、免费开源的数据库中间件 |
 
+## 后端解决方案
+#### 整体架构图
+- `Adnc.Infras` 基础架构相关工程
+- `Adnc.Portal` 微服务相关工程
+- `Adnc.Tests` 框架测试相关工程
 
-## 项目介绍
-### Adnc.Infras 基础架构层
+![.NET微服务开源框架-整体架构图](https://aspdotnetcore.net/wp-content/uploads/2021/03/adnc_solution.jpg)
+#### Adnc.Infras 基础架构相关工程
 ##### 01.Adnc.WebApi.Shared
-该层定义认证、鉴权、异常捕获等公共类于中间件。所有微服务WebApi层的共享层，都需要依赖该层。   
-![image](http://193.112.75.77/adncimages/20201016160419.png)
+该层实现了认证、鉴权、异常捕获等公共类和中间件。所有微服务WebApi层的共享层，并且都需要依赖该层。<br/>
+![.NET微服务开源框架-webpai-shared层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-webapishared.webp)
 ##### 02.Adnc.Application.Shared  
-该层定义了DTO对象的基类、应用服务类基类以及操作日志拦截器。所有微服务Application层的共享层，都需要依赖该层。   
-![image](http://193.112.75.77/adncimages/20201016160452.png)
+该层定义了DTO对象的基类、Rpc服务通用服务、应用服务类基类以及操作日志拦截器。所有微服务Application层的共享层，并且都需要依赖该层。<br/>
+![.NET微服务开源框架-application-shared层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-applicationshared.webp)
 ##### 03.Adnc.Core.Shared
-该层定义了Entity对象的基类、业务服务接口基类、Rpc服务通用服务、UOW接口与拦截器以及仓储接口。所有微服务Core层的共享层，都需要依赖该层。     
-![image](http://193.112.75.77/adncimages/20201016160512.png)
-##### 04.Adnc.Common
-该层定义了一些公用模型与常量以及一些通用帮助类。该层不依赖任何层。
-![image](http://193.112.75.77/adncimages/20201016160550.png)
+该层定义了Entity对象的基类、业务服务接口基类、UOW接口与拦截器、仓储接口、以及处理本地事务与分布式事务。所有微服务Core层的共享层，并且都需要依赖该层。<br/>
+![.NET微服务开源框架-core-shared层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-coreshared.webp)
+##### 04.Adnc.Infr.Common
+该层实现了一些通用帮助类。该层不依赖任何层。<br/>
+![.NET微服务开源框架-基础机构-common层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-common.webp)
 ##### 10.Adnc.Infr.Gateway 
- 该层是一个输出项目，Api网关，基于ocelot实现，如果项目采用整体结构开发，该项目可以直接删除。ocelot网关包含路由、服务聚合、服务发现、认证、鉴权、限流、熔断、缓存、Header头传递等功能。市面上主流网关还有Kong，Traefik，Ambassador，Tyk等。<br/>
-![image](http://193.112.75.77/adncimages/20201017111155.png)
+ 该层是一个输出项目，基于Ocelot实现的Api网关，如果项目采用整体结构开发，该项目可以直接删除。ocelot网关包含路由、服务聚合、服务发现、认证、鉴权、限流、熔断、缓存、Header头传递等功能。市面上主流网关还有Kong，Traefik，Ambassador，Tyk等。<br/>
+![.NET微服务开源框架-基础机构-gateway层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-gateway.webp)
 ##### 11.Adnc.Infr.HealthCheckUI
-该层是一个输出项目， AspNetCore.HealthChecks组件的Dashboard，直接配置需要监测的服务地址就可以了，没有代码。
+该层是一个输出项目， AspNetCore.HealthChecks组件的Dashboard，直接配置需要监测的服务地址就可以了，没有代码，关键的代码参考webapi层的AddHealthChecks()方法。<br/>
+![.NET微服务开源框架-基础机构-healthchecksui层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-healthcheckui.webp)
 ##### 20.Adnc.Infr.Consul
-该层集成了Consul。提供服务的注册、发现以及系统配置读取等公共类。
-![image](http://193.112.75.77/adncimages/20201017115934.png)
+该层集成了Consul，提供服务的自动注册、发现以及系统配置读写。<br/>
+![.NET微服务开源框架-基础机构-cosnul层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-consul.webp)
 ##### 21.Adnc.Infr.EasyCaching
-该层集成了EasyCaching。重写了EasyCaching拦截器部分代码，负责一、二级缓存的管理。
-![image](http://193.112.75.77/adncimages/20201017120053.png)
+该层集成了EasyCaching，负责一、二级缓存的管理，并重写了EasyCaching拦截器部分代码。<br/>
+![.NET微服务开源框架-基础机构-easycaching层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-easycaching.webp)
 ##### 22.Adnc.Infr.EfCore
-该层负责Adnc.Core.Shared仓储接口与Uow的Ef实现，负责mysql数据库的操作。同时也集成了Dapper部分接口，用来处理复杂查询。<br/>
-![image](http://193.112.75.77/adncimages/20201017120005.png)
+该层负责Adnc.Core.Shared仓储接口与Uow的EfCore的实现，负责mysql数据库的操作。同时也集成了Dapper部分接口，用来处理复杂查询。<br/>
+![.NET微服务开源框架-基础机构-efcore层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-efcore.webp)
 ##### 23.Adnc.Infr.Mongo
-该层负责Adnc.Core.Shared仓储接口的Mongodb实现，负责mongodb数据库的操作。
-![image](http://193.112.75.77/adncimages/20201017120115.png)
+该层负责Adnc.Core.Shared仓储接口的Mongodb实现，负责mongodb数据库的操作。<br/>
+![.NET微服务开源框架-基础机构-mongodb层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-mongodb.webp)
 ##### 23.Adnc.Infr.RabbitMq
-该层集成了RabbitMq。封装了发布者与订阅者等公共类。<br/>
-![image](http://193.112.75.77/adncimages/20201017120028.png)
-## 代码片段
+该层集成了RabbitMq。封装了发布者与订阅者等公共类，方便更加便捷的调用rabbitmq。<br/>
+![.NET微服务开源框架-基础机构-rabbitmq层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-infr-rabbitmq.webp)
+#### Adnc.Portal 微服务相关工程
+该目录都是具体微服务业务的实现。<br/>
+- `Adnc.Usr` 用户中心微服务，系统支撑服务，实现了用户管理、角色管理、权限管理、菜单管理、组织架构管理。
+- `Adnc.Maint` 运维中心微服务，系统支撑服务，实现了登录日志、审计日志、异常日志、字典管理、配置参数管理。
+- `Adnc.Cus` 客户中心微服务，经典三层开发模式demo。
+- `Adnc.Ord` 订单中心微服务，DDD开发模式demo。
+- `Adnc.Whse` 仓储中心微服务，DDD开发模式demo。
+
+每个微服务的Migrations层是Efcore用来做数据迁移的，迁移的日志文件存放在各自Migrations目录中。<br/>
+![.NET微服务开源框架-微服务层](https://aspdotnetcore.net/wp-content/uploads/2020/11/adnc-serverapi-potral.webp)
+### 代码片段
 ```csharp
     [Route("usr/session")]
     [ApiController]
@@ -162,11 +211,18 @@
         }
     }
 ```
+## 下一步计划
+  - 完善框架文档。
+  - 优化现有功能
+  - 开发微服务项目生成工具
+  - 集成<a href="https://github.com/quartznet/quartznet" target="_blank">Quartz.Net</a>实现框架计划调度功能。
+
 ## 问题交流
 -  企&ensp;鹅&ensp;群：780634162
--  博&ensp;&ensp;&ensp;&ensp;客：https://www.cnblogs.com/alphayu
--  github&ensp; ：https://github.com/alphayu
--  项目网址：https://www.aspdotnetcore.net
-## License 
+-  项目官网：<a target="_blank" href="https://aspdotnetcore.net">https://aspdotnetcore.net</a>
+-  博&ensp;&ensp;&ensp;&ensp;客：<a target="_blank" href="https://www.cnblogs.com/alphayu">https://www.cnblogs.com/alphayu</a>
+-  GitHub&ensp;：<a target="_blank" href="https://github.com/alphayu/adnc">https://github.com/alphayu/adnc</a>
+
+## License
 **MIT**   
 **Free Software, Hell Yeah!**

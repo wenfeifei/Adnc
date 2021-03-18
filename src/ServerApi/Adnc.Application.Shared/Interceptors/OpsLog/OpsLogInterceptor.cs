@@ -1,60 +1,23 @@
-﻿using System;
-using System.Reflection;
-using System.Text.Json;
+﻿using System.Reflection;
 using Castle.DynamicProxy;
-using Adnc.Infr.Mq.RabbitMq;
-using Adnc.Infr.Common;
 
 namespace Adnc.Application.Shared.Interceptors
 {
+    /// <summary>
+    /// 操作日志拦截器
+    /// </summary>
     public class OpsLogInterceptor : IInterceptor
     {
-        private bool _isLoging = false;
-        private readonly UserContext _userContext;
-        private readonly RabbitMqProducer _mqProducer;
+        private readonly OpsLogAsyncInterceptor _opsLogAsyncInterceptor;
 
-        public OpsLogInterceptor(UserContext userContext
-            , RabbitMqProducer mqProducer)
+        public OpsLogInterceptor(OpsLogAsyncInterceptor opsLogAsyncInterceptor)
         {
-            _userContext = userContext;
-            _mqProducer = mqProducer;
+            _opsLogAsyncInterceptor = opsLogAsyncInterceptor;
         }
 
         public void Intercept(IInvocation invocation)
         {
-            invocation.Proceed();
-
-            var serviceMethod = invocation.Method ?? invocation.MethodInvocationTarget;
-            var attribute = serviceMethod.GetCustomAttribute<OpsLogAttribute>();
-            if (attribute == null)
-                return;
-
-            if (_isLoging)
-                return;
-            else
-                _isLoging = true;
-
-            var logInfo = new
-            {
-                ClassName = serviceMethod.DeclaringType.FullName,
-                CreateTime = DateTime.Now,
-                LogName = attribute.LogName,
-                LogType = "操作日志",
-                Message = JsonSerializer.Serialize(invocation.Arguments),
-                Method = serviceMethod.Name,
-                Succeed = "",
-                UserId = _userContext.ID,
-                UserName = _userContext.Name,
-                Account = _userContext.Account,
-                RemoteIpAddress = _userContext.RemoteIpAddress
-            };
-
-            
-            var properties = _mqProducer.CreateBasicProperties();
-            //设置消息持久化
-            properties.Persistent = true;
-            _mqProducer.BasicPublish(BaseMqExchanges.Logs, BaseMqRoutingKeys.OpsLog, logInfo, properties);
-
+            this._opsLogAsyncInterceptor.ToInterceptor().Intercept(invocation);
         }
     }
 }
